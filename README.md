@@ -1,73 +1,74 @@
-# React + TypeScript + Vite
+👷‍♂️ Portal de Gestão de Obras - INENG
+Este é o repositório do Portal de Gestão de Obras (INENG - Inova Engenharia), uma aplicação desenvolvida com arquitetura modular para controle de custos, cadastro de usuários e gestão de projetos.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+🏗️ 1. Arquitetura do Projeto
+O projeto é dividido em duas camadas principais, seguindo uma arquitetura moderna para máxima escalabilidade e separação de responsabilidades.
 
-Currently, two official plugins are available:
+Camada	Tecnologia Principal	Finalidade
+Frontend (Web)	React (Vite) + TypeScript	Interface de usuário (UI) componentizada e rápida.
+Backend (API)	Node.js (Express) + TypeScript	Servidor RESTful, lógica de negócio e segurança.
+Banco de Dados	MySQL + Prisma ORM	Persistência de dados segura e tipada.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Exportar para as Planilhas
+📂 2. Estrutura de Pastas
+A estrutura é modular, com foco na escalabilidade:
 
-## React Compiler
+.
+├── INENG_Backend/       # Servidor Node.js (API)
+│   ├── prisma/          # Schemas e Migrações (Prisma)
+│   └── src/             # Código-fonte do servidor (Controllers, Routes, DB)
+└── INENG_Frontend/      # Aplicação Web (React/Vite)
+    ├── src/
+    │   ├── api/         # Configuração do Axios e Serviços de API
+    │   ├── components/  # Componentes de UI Reutilizáveis (Input, Button, Card)
+    │   ├── hooks/       # Lógica de Estado e API
+    │   ├── models/      # Tipos de Dados (User, Cliente, etc.)
+    │   └── pages/       # Telas/Rotas Principais (Login, RegisterUser)
+⚙️ 3. Setup do Ambiente
+Para rodar o projeto, configure o MySQL e os arquivos .env em ambas as pastas.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+3.1 Setup do Banco de Dados
+Garanta que o seu servidor MySQL esteja rodando (porta 3306).
 
-## Expanding the ESLint configuration
+Crie um esquema (database) chamado ineng_db no seu MySQL Workbench.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+3.2 Configuração do Backend (INENG_Backend/)
+Instalação: cd INENG_Backend e npm install.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Variáveis (.env): Crie o arquivo .env com suas credenciais:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Snippet de código
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+# .env (BACKEND)
+DATABASE_URL="mysql://root:root@localhost:3306/ineng_db" 
+PORT=3000
+JWT_SECRET="SUA_CHAVE_SECRETA_MUITO_LONGA_AQUI"
+Executar Migração (Criação de Tabelas):
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Bash
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+npx prisma migrate dev --name init_schema
+3.3 Configuração do Frontend (INENG_Frontend/)
+Instalação: cd INENG_Frontend, npm install, e npm install react-icons.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Variáveis (.env): Crie o arquivo .env para apontar para a API:
+
+Snippet de código
+
+# .env (FRONTEND - VITE)
+VITE_API_BASE_URL=http://SEU_IP_LOCAL:3000/api/v1 
+▶️ 4. Como Rodar o Sistema
+Para testar o fluxo de Login e Cadastro de Gestores:
+
+Iniciar Backend (API):
+
+Bash
+
+cd INENG_Backend
+npm run dev
+Iniciar Frontend (Web):
+
+Bash
+
+cd INENG_Frontend
+npm run dev

@@ -1,16 +1,19 @@
 // src/components/common/AppLogo.tsx
 
 import React from 'react';
-import { AiOutlineSetting } from 'react-icons/ai'; // Ícone de Engrenagem do AntDesign
+import { AiOutlineSetting } from 'react-icons/ai'; // Ícone de engrenagem
 import { Colors } from '../../theme/colors';
 
 const AppLogo: React.FC = () => {
     return (
         <div style={styles.logoContainer}>
-            {/* Ícone de Engrenagem */}
-            <AiOutlineSetting size={80} color={Colors.primary} /> 
+            {/* Ícone grande e destacado */}
+            <AiOutlineSetting size={60} color={Colors.accent} style={{ marginBottom: 10 }} />
 
+            {/* Nome da aplicação */}
             <h1 style={styles.logoText}>INENG</h1>
+
+            {/* Subtítulo / slogan */}
             <p style={styles.logoSubtitle}>Inova Engenharia</p>
         </div>
     );
@@ -21,19 +24,19 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        marginBottom: '20px',
+        marginBottom: '30px',
         textAlign: 'center',
     },
     logoText: {
-        fontSize: '40px',
+        fontSize: '36px',
         fontWeight: 'bold',
         color: Colors.primary,
-        margin: '5px 0 0 0',
+        margin: '0',
     },
     logoSubtitle: {
-        fontSize: '16px',
-        color: Colors.text,
-        margin: '0',
+        fontSize: '14px',
+        color: Colors.secondary,
+        margin: '4px 0 0 0',
     },
 };
 

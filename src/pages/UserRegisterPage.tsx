@@ -1,11 +1,12 @@
-import { useState } from 'react';
+// src/pages/UserRegisterPage.tsx
+import React, { useState } from 'react';
 import { Colors } from '../theme/colors';
 import type { UserRole, RegisterUserPayload } from '../models/User';
 import Card from '../components/ui/Card';
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
-import AppLogo from '../components/common/AppLogo'; 
-import { useRegisterUser } from '../hooks/useRegisterUser'; 
+import AppLogo from '../components/common/AppLogo';
+import { useRegisterUser } from '../hooks/useRegisterUser';
 import { maskCPF } from '../utils/formatters';
 
 const BASE_FORM: RegisterUserPayload = {
@@ -13,19 +14,18 @@ const BASE_FORM: RegisterUserPayload = {
     email: '',
     password: '',
     cpf: '',
-    role: 'GESTOR', 
+    role: 'GESTOR',
 };
 
 const UserRegisterPage: React.FC = () => {
     const [formData, setFormData] = useState<RegisterUserPayload>(BASE_FORM);
     const [errors, setErrors] = useState<Partial<Record<keyof RegisterUserPayload, string>>>({});
 
-    // Hook real conectado ao backend
     const { registerUser, loading, error } = useRegisterUser();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        const key = name as keyof RegisterUserPayload; // <-- correção de tipagem
+        const key = name as keyof RegisterUserPayload;
 
         if (key === 'cpf') {
             const rawCpf = value.replace(/\D/g, '');
@@ -62,7 +62,7 @@ const UserRegisterPage: React.FC = () => {
 
         if (result.success) {
             alert(`Gestor ${formData.name} cadastrado com sucesso!`);
-            setFormData(BASE_FORM); 
+            setFormData(BASE_FORM);
         } else {
             alert(`Falha no cadastro: ${result.message}`);
         }
@@ -72,24 +72,26 @@ const UserRegisterPage: React.FC = () => {
 
     return (
         <div style={styles.container}>
-            <Card>
+            <Card style={styles.card}>
                 <AppLogo />
-                
+
                 <h2 style={styles.title}>Cadastro de Gestores</h2>
-                
-                {/* Erro geral do backend */}
-                {error && <div style={{ color: Colors.danger, marginBottom: '15px' }}>Erro Geral: {error}</div>}
+
+                {error && <div style={{ color: Colors.danger, marginBottom: 15 }}>Erro Geral: {error}</div>}
 
                 <form onSubmit={handleSubmit} style={styles.form}>
                     {/* Seleção de role */}
                     <div style={styles.roleContainer}>
-                        <p style={{ color: Colors.text, fontWeight: 'bold', marginBottom: '10px' }}>Nível de Acesso:</p>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <p style={{ color: Colors.text, fontWeight: 'bold', marginBottom: 10 }}>Nível de Acesso:</p>
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                             <button
                                 type="button"
                                 onClick={() => handleRoleChange('GESTOR')}
                                 disabled={loading}
-                                style={{ ...styles.roleButton, backgroundColor: !isUserAdmin ? Colors.accent : Colors.secondary }}
+                                style={{
+                                    ...styles.roleButton,
+                                    backgroundColor: !isUserAdmin ? Colors.accent : Colors.secondary,
+                                }}
                             >
                                 Usuário GESTOR
                             </button>
@@ -97,28 +99,30 @@ const UserRegisterPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleRoleChange('ADMIN')}
                                 disabled={loading}
-                                style={{ ...styles.roleButton, backgroundColor: isUserAdmin ? Colors.accent : Colors.secondary }}
+                                style={{
+                                    ...styles.roleButton,
+                                    backgroundColor: isUserAdmin ? Colors.accent : Colors.secondary,
+                                }}
                             >
                                 Administrador
                             </button>
                         </div>
                     </div>
-                    
+
                     {/* Campos */}
-                    <Input label="Nome Completo" name="name" value={formData.name} onChange={handleChange} error={errors.name} required />
-                    <Input label="CPF" name="cpf" value={maskCPF(formData.cpf || '')} onChange={handleChange} maxLength={14} error={errors.cpf} required />
-                    <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} required />
-                    <Input label="Senha Provisória" name="password" type="password" value={formData.password || ''} onChange={handleChange} error={errors.password} required />
-                    
+                    <Input label="Nome Completo" name="name" value={formData.name} onChange={handleChange} required />
+                    <Input label="CPF" name="cpf" value={maskCPF(formData.cpf || '')} onChange={handleChange} maxLength={14} required />
+                    <Input label="Email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+                    <Input label="Senha Provisória" name="password" type="password" value={formData.password || ''} onChange={handleChange} required />
+
                     {/* Exibição da role */}
                     <div style={styles.roleDisplay}>
                         Acesso: 
-                        <span style={{ fontWeight: 'bold', color: isUserAdmin ? Colors.danger : Colors.primary, marginLeft: '5px' }}>
+                        <span style={{ fontWeight: 'bold', color: isUserAdmin ? Colors.danger : Colors.primary, marginLeft: 5 }}>
                             {isUserAdmin ? 'ADMINISTRADOR TOTAL' : 'GESTOR COMUM'}
                         </span>
                     </div>
 
-                    {/* Botão de submit */}
                     <Button 
                         title={loading ? 'Cadastrando...' : 'Finalizar Cadastro'} 
                         type="submit" 
@@ -139,41 +143,51 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: '20px',
+        padding: 20,
     },
-    title: {
-        fontSize: '24px',
-        fontWeight: 'bold',
-        color: Colors.primary,
-        marginBottom: '20px',
-    },
-    form: {
+    card: {
         width: '100%',
-        maxWidth: '400px',
+        maxWidth: 500,
+        padding: 30,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
     },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: Colors.primary,
+        marginBottom: 20,
+    },
+    form: {
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 15,
+    },
     roleContainer: {
         width: '100%',
-        marginBottom: '20px',
-        textAlign: 'center',
+        marginBottom: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
     },
     roleButton: {
-        padding: '8px 15px',
-        borderRadius: '5px',
+        padding: '8px 20px',
+        borderRadius: 5,
         border: 'none',
         color: Colors.white,
         fontWeight: 'bold',
         cursor: 'pointer',
     },
     roleDisplay: {
-        fontSize: '14px',
+        fontSize: 14,
         color: Colors.secondary,
-        marginTop: '10px',
-        marginBottom: '10px',
+        marginTop: 10,
+        marginBottom: 10,
         textAlign: 'center',
-    }
+    },
 };
 
 export default UserRegisterPage;

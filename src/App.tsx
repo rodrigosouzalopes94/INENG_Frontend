@@ -1,13 +1,15 @@
-// src/App.tsx
+// src/App.tsx (Ajustado)
 
 import React from 'react';
-import AppRoutes from './routes/AppRoutes'; // Importa o módulo de rotas
+import AppRoutes from './routes/AppRoutes';
+import { AuthProvider } from './context/AuthContext'; // Importa o Provedor
 
 const App: React.FC = () => {
-    // Aqui você pode adicionar lógica de provedor de contexto ou temas
-    // Renderiza a estrutura de rotas
     return (
-        <AppRoutes />
+        // ✅ O AuthProvider deve encapsular as Rotas
+        <AuthProvider>
+            <AppRoutes />
+        </AuthProvider>
     );
 };
 

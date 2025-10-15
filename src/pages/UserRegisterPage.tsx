@@ -32,6 +32,7 @@ const UserRegisterPage: React.FC = () => {
             if (rawCpf.length <= 11) {
                 setFormData(prev => ({ ...prev, [key]: rawCpf }));
             }
+            if (errors[key]) setErrors(prev => ({ ...prev, [key]: undefined }));
             return;
         }
 
@@ -45,11 +46,10 @@ const UserRegisterPage: React.FC = () => {
 
     const validate = (): boolean => {
         const newErrors: typeof errors = {};
-        if (!formData.name) newErrors.name = 'O nome é obrigatório.';
+        if (!formData.name.trim()) newErrors.name = 'O nome é obrigatório.';
+        if (!formData.email.trim()) newErrors.email = 'O email é obrigatório.';
+        if (!formData.password.trim()) newErrors.password = 'A senha é obrigatória.';
         if (formData.cpf.length !== 11) newErrors.cpf = 'O CPF deve ter 11 dígitos.';
-        if (!formData.email) newErrors.email = 'O email é obrigatório.';
-        if (!formData.password) newErrors.password = 'A senha é obrigatória.';
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -58,13 +58,23 @@ const UserRegisterPage: React.FC = () => {
         e.preventDefault();
         if (!validate()) return;
 
-        const result = await registerUser(formData);
+        // 🔹 Payload limpo para o backend
+        const payload: RegisterUserPayload = {
+            name: formData.name.trim(),
+            email: formData.email.trim(),
+            password: formData.password.trim(),
+            cpf: formData.cpf.replace(/\D/g, ''),
+            role: formData.role === 'ADMIN' ? 'ADMIN' : 'GESTOR',
+        };
 
-        if (result.success) {
-            alert(`Gestor ${formData.name} cadastrado com sucesso!`);
+        console.log('Payload enviado:', payload); // depuração
+
+        try {
+            const result = await registerUser(payload);
+            alert(`Usuário ${payload.name} cadastrado com sucesso!`);
             setFormData(BASE_FORM);
-        } else {
-            alert(`Falha no cadastro: ${result.message}`);
+        } catch (err: any) {
+            alert(`Falha no cadastro: ${err.response?.data?.message || err.message}`);
         }
     };
 
@@ -74,7 +84,6 @@ const UserRegisterPage: React.FC = () => {
         <div style={styles.container}>
             <Card style={styles.card}>
                 <AppLogo />
-
                 <h2 style={styles.title}>Cadastro de Gestores</h2>
 
                 {error && <div style={{ color: Colors.danger, marginBottom: 15 }}>Erro Geral: {error}</div>}

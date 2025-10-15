@@ -1,4 +1,5 @@
-// src/components/layout/DrawerMenu.tsx
+// src/components/layout/DrawerMenu.tsx (AJUSTADO)
+
 import React from 'react';
 import { Colors } from '../../theme/colors';
 import AppLogo from '../common/AppLogo';
@@ -7,12 +8,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 interface MenuItem {
   label: string;
   path: string;
-  allowedRoles?: ('GESTOR' | 'FUNCIONARIO')[];
+  allowedRoles?: ('GESTOR' | 'ADMIN')[]; // ✅ CORREÇÃO: Alinhado com ADMIN e GESTOR
 }
 
 interface DrawerMenuProps {
   items: MenuItem[];
-  userRole: 'GESTOR' | 'FUNCIONARIO';
+  // ✅ CORREÇÃO: Alinhado com o backend e o useAuth
+  userRole: 'GESTOR' | 'ADMIN';
 }
 
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ items, userRole }) => {
@@ -24,6 +26,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ items, userRole }) => {
       <AppLogo />
       <nav style={styles.nav}>
         {items
+          // Filtra se o usuário logado tem permissão para ver o item
           .filter(item => !item.allowedRoles || item.allowedRoles.includes(userRole))
           .map((item, idx) => {
             const isActive = location.pathname === item.path;
@@ -35,6 +38,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ items, userRole }) => {
                   backgroundColor: isActive ? Colors.accent : 'transparent',
                   color: isActive ? Colors.white : Colors.white,
                 }}
+                // ✅ LÓGICA DE NAVEGAÇÃO
                 onClick={() => navigate(item.path)}
               >
                 {item.label}
@@ -47,6 +51,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ items, userRole }) => {
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
+  // ... (Estilos permanecem os mesmos)
   sidebar: {
     width: 250,
     padding: 20,

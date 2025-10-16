@@ -1,23 +1,22 @@
 // src/components/forms/ClienteForm.tsx
 
 import { useState, useEffect } from 'react';
-// Não importamos Card, pois ele será renderizado pelo componente Modal na ClientPage
 import Input from '../ui/Input'; 
 import Button from '../ui/Button';
-import { useClientes } from '../../hooks/useClientes';
+import { useClientes } from '../../hooks/useClientes'; 
 import type { Cliente, ClientePayload, TipoPessoa } from '../../models/Cliente';
-import { maskCPF, maskCNPJ } from '../../utils/formatters'; 
+import { maskCPF, maskCNPJ, maskCEP } from '../../utils/formatters'; 
 import { Colors } from '../../theme/colors';
 
 interface ClienteFormProps {
     clienteInicial?: Cliente | null;
-    onSave: () => void;
+    onSave: () => void; // Função para fechar o modal e atualizar a lista
 }
 
 const INITIAL_FORM: ClientePayload = {
     tipoPessoa: 'JURIDICA',
     nomeOuRazao: '',
-    cep: '',
+    cep: '', 
     enderecoCompleto: '',
     cpf: '', 
     cnpj: '',
@@ -28,7 +27,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
     const [errors, setErrors] = useState<Partial<Record<keyof ClientePayload, string>>>({});
     
     // Puxa a lógica de submissão, loading e erro do hook de clientes
-    const { submitCliente, loading, error } = useClientes(); 
+    const { submitCliente, loading, error: apiError } = useClientes(); // Renomeia o erro da API para 'apiError'
     
     const isEditing = !!clienteInicial;
     const isPJ = formData.tipoPessoa === 'JURIDICA';
@@ -45,6 +44,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         } else {
             setFormData(INITIAL_FORM as ClientePayload);
         }
+        setErrors({}); 
     }, [clienteInicial]);
     
     // Manipuladores e Validação (Omitidos para brevidade, mas estão no código)
@@ -52,9 +52,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         
-        if (name === 'cpf' || name === 'cnpj') {
+        if (name === 'cpf' || name === 'cnpj' || name === 'cep') {
             const rawValue = value.replace(/\D/g, '');
-            setFormData(prev => ({ ...prev, [name]: rawValue }));
+            let limitedValue = rawValue;
+
+            if (name === 'cep') limitedValue = rawValue.substring(0, 8); 
+            else if (name === 'cpf') limitedValue = rawValue.substring(0, 11);
+            else if (name === 'cnpj') limitedValue = rawValue.substring(0, 14);
+
+            setFormData(prev => ({ ...prev, [name]: limitedValue }));
             if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
             return;
         }
@@ -67,16 +73,17 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         setFormData(prev => ({ 
             ...prev, 
             tipoPessoa: type,
-            cpf: type === 'JURIDICA' ? '' : prev.cpf,
-            cnpj: type === 'FISICA' ? '' : prev.cnpj,
+            cpf: '', 
+            cnpj: '', 
         }));
         setErrors({}); 
     };
 
     const validate = (): boolean => {
         const newErrors: Partial<Record<keyof ClientePayload, string>> = {};
+        
         if (!formData.nomeOuRazao) newErrors.nomeOuRazao = 'Nome/Razão Social é obrigatório.';
-        if (!formData.cep) newErrors.cep = 'CEP é obrigatório.';
+        if (formData.cep.replace(/\D/g, '').length !== 8) newErrors.cep = 'CEP deve ter 8 dígitos.';
 
         const doc = isPJ ? formData.cnpj : formData.cpf;
         const requiredLength = isPJ ? 14 : 11;
@@ -85,11 +92,13 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         if (!doc || doc.replace(/\D/g, '').length !== requiredLength) {
             newErrors[isPJ ? 'cnpj' : 'cpf'] = `${docName} deve ter ${requiredLength} dígitos.`;
         }
-        
+        if (!formData.enderecoCompleto) newErrors.enderecoCompleto = 'Endereço completo é obrigatório.';
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
+    // ✅ Submissão (Usa o Hook de API)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -98,27 +107,33 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         const payload: ClientePayload = {
             ...formData,
             tipoPessoa: isPJ ? 'JURIDICA' : 'FISICA', 
-            cpf: isPJ ? null : formData.cpf, 
-            cnpj: isPJ ? null : formData.cnpj,
+            cep: formData.cep.replace(/\D/g, ''), 
+            cpf: isPJ ? null : formData.cpf.replace(/\D/g, ''), 
+            cnpj: isPJ ? null : formData.cnpj.replace(/\D/g, ''),
+            enderecoCompleto: formData.enderecoCompleto,
         } as ClientePayload;
 
-        const success = await submitCliente(payload, clienteInicial?.id);
+        const success = await submitCliente(payload, clienteInicial?.id); 
 
         if (success) {
-            onSave(); 
+            // ✅ FEEDBACK AMIGÁVEL: Mensagem de sucesso
+            const action = clienteInicial ? 'alterado' : 'cadastrado';
+            alert(`Cliente ${payload.nomeOuRazao} ${action} com sucesso!`);
+            
+            onSave(); // Fecha o modal e atualiza a lista
         } 
+        // O erro (se houver) já está no estado 'apiError' e será exibido no JSX, 
+        // mas o alert direto foi removido para evitar duplicação
     };
 
 
     return (
-        // ✅ CORREÇÃO 1: Wrapper sem Card (para evitar borda dupla)
         <div style={styles.formWrapper}> 
             <form onSubmit={handleSubmit} style={styles.formContainer}>
                 
                 {/* Mensagem de Erro Geral da API */}
-                {error && <p style={styles.apiErrorText}>Falha na API: {error}</p>}
+                {apiError && <p style={styles.apiErrorText}>Falha na API: {apiError}</p>}
                 
-                {/* Título Condicional */}
                 <h3 style={styles.formTitle}>{isEditing ? 'Editar Cliente Existente' : 'Novo Cliente'}</h3>
                 
                 {/* Seleção de Tipo de Pessoa (PF/PJ) */}
@@ -142,7 +157,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
                     </div>
                 </div>
 
-                {/* CAMPOS DE INPUT */}
+                {/* Documento Condicional (CPF ou CNPJ) */}
                 <Input
                     label={isPJ ? 'CNPJ *' : 'CPF *'}
                     name={isPJ ? 'cnpj' : 'cpf'}
@@ -152,6 +167,8 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
                     error={errors.cpf || errors.cnpj}
                     required
                 />
+                
+                {/* Nome / Razão Social */}
                 <Input
                     label={isPJ ? 'Razão Social *' : 'Nome Completo *'}
                     name="nomeOuRazao"
@@ -165,8 +182,9 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
                 <Input
                     label="CEP *"
                     name="cep"
-                    value={formData.cep}
+                    value={maskCEP(formData.cep || '')}
                     onChange={handleChange}
+                    maxLength={10} // 8 dígitos + hífen
                     error={errors.cep}
                     required
                 />
@@ -192,61 +210,17 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
     );
 };
 
+// ... (Estilos permanecem os mesmos)
 const styles: { [key: string]: React.CSSProperties } = {
-    formWrapper: {
-        width: '100%',
-        maxWidth: '550px',
-        margin: '0 auto',
-        padding: '10px', 
-    },
-    formTitle: {
-        color: Colors.primary,
-        fontSize: '20px',
-        fontWeight: 'bold',
-        marginBottom: '25px',
-        textAlign: 'center',
-        width: '100%',
-    },
-    formContainer: {
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '15px',
-        width: '100%',
-        alignItems: 'center',
-    },
-    toggleContainer: {
-        width: '100%',
-        marginBottom: '15px',
-        textAlign: 'center',
-    },
-    toggleLabel: {
-        color: Colors.text,
-        fontWeight: 'bold',
-        marginBottom: '8px',
-        fontSize: '14px',
-    },
-    toggleButtonGroup: {
-        display: 'flex', 
-        gap: '10px', 
-        width: '100%',
-    },
-    toggleButton: {
-        width: 'calc(50% - 5px)', // Garante que os dois botões caibam lado a lado
-        padding: '10px 0',
-    },
-    submitButton: {
-        marginTop: '20px',
-        width: '100%',
-    },
-    apiErrorText: {
-        color: Colors.danger,
-        padding: '10px',
-        border: `1px solid ${Colors.danger}`,
-        borderRadius: '5px',
-        width: '100%',
-        textAlign: 'center',
-        fontSize: '14px',
-    }
+    formWrapper: { width: '100%', maxWidth: '550px', margin: '0 auto', padding: '10px' },
+    formTitle: { color: Colors.primary, fontSize: '20px', fontWeight: 'bold', marginBottom: '25px', textAlign: 'center', width: '100%' },
+    formContainer: { display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', alignItems: 'center' },
+    toggleContainer: { width: '100%', marginBottom: '15px', textAlign: 'center' },
+    toggleLabel: { color: Colors.text, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' },
+    toggleButtonGroup: { display: 'flex', gap: '10px', width: '100%' },
+    toggleButton: { width: 'calc(50% - 5px)', padding: '10px 0' },
+    submitButton: { marginTop: '20px', width: '100%' },
+    apiErrorText: { color: Colors.danger, padding: '10px', border: `1px solid ${Colors.danger}`, borderRadius: '5px', width: '100%', textAlign: 'center', fontSize: '14px' }
 };
 
 export default ClienteForm;

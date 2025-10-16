@@ -39,4 +39,21 @@ export const maskCNPJ = (cnpj: string): string => {
     .replace(/(\d{4})(\d)/, '$1-$2');     // Coloca o hífen final: .../XXXX-XX
 };
 
+/**
+ * Aplica a máscara de CEP (XXXXX-XXX) a uma string de dígitos.
+ * Limita a 8 dígitos e aplica a formatação para exibição.
+ * @param cep A string contendo números do CEP.
+ * @returns O CEP formatado para exibição.
+ */
+export const maskCEP = (cep: string): string => {
+    if (!cep) return '';
+    
+    // 1. Remove tudo que não for dígito e limita a 8 caracteres
+    const cleanCep = cep.replace(/\D/g, '').substring(0, 8);
+    
+    // 2. Aplica a máscara: 12345-678
+    return cleanCep.replace(/(\d{5})(\d)/, '$1-$2'); 
+};
+
+
 // Você pode adicionar outras funções como formatCurrency aqui futuramente.

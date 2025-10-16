@@ -4,17 +4,18 @@ import React, { useState, useMemo } from 'react';
 import { Colors } from '../theme/colors';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
-import DashboardLayout from '../components/ui/DashboardLayout'; 
+import DashboardLayout from '../components/ui/DashboardLayout';
 import Table from '../components/ui/Table'; 
 import Modal from '../components/ui/Modal'; 
 import { useClientes } from '../hooks/useClientes'; 
 import { useAuthContext } from '../context/AuthContext';
 import type { Cliente } from '../models/Cliente';
-// Importa o formulário de forma direta
-import ClienteForm from '../components/ui/ClientForm'; 
+// Importa o formulário de cadastro/edição
+import ClienteForm from '../components/ui/ClientForm';
 
 
 // Dados para o DrawerMenu (adaptados da sua DashboardPage)
+// Assumindo que a DashboardPage é a fonte de verdade para os menuItems
 const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Clientes', path: '/clientes' }, 
@@ -30,6 +31,7 @@ const ClientPage: React.FC = () => {
     const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
     const { user } = useAuthContext();
     
+    // Garante que a role seja usada para o layout e permissões
     const userRole = user?.role === 'ADMIN' ? 'ADMIN' : 'GESTOR'; 
 
     const handleEdit = (cliente: Cliente) => {
@@ -38,19 +40,20 @@ const ClientPage: React.FC = () => {
     };
 
     const handleNew = () => {
-        setEditingCliente(null);
+        setEditingCliente(null); // Limpa o estado para indicar novo cadastro
         setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setEditingCliente(null);
-        fetchClientes(); // Atualiza a lista
+        fetchClientes(); // Atualiza a lista após fechar o modal
     };
 
-    // Definição das colunas da tabela
+    // Definição das colunas da tabela (Utilizando o componente Table genérico)
+    // O tipo genérico é inferido aqui como Cliente
     const columns = useMemo(() => [
-        { header: 'ID', accessor: 'id' },
+        { header: 'ID', accessor: 'id' as const },
         { header: 'Nome/Razão Social', accessor: 'nomeOuRazao' },
         { header: 'Tipo', accessor: 'tipoPessoa' },
         { header: 'Documento', accessor: (cliente: Cliente) => cliente.cpf || cliente.cnpj || 'N/A' },
@@ -84,20 +87,19 @@ const ClientPage: React.FC = () => {
     return (
         <DashboardLayout menuItems={menuItems} userRole={userRole}>
             <div style={styles.header}>
-                {/* Título Alinhado (Corrigido) */}
                 <h1 style={styles.pageTitle}>Gerenciamento de Clientes</h1>
                 <Button title="Novo Cliente" variant="primary" onClick={handleNew} />
             </div>
 
-            {/* ✅ CORREÇÃO 1: Container de listagem (garantindo padding) */}
             <Card style={styles.listCardContainer}>
                 {clientes.length > 0 ? (
+                    // ✅ LISTAGEM: Renderiza a Tabela genérica
                     <Table data={clientes} columns={columns} />
                 ) : (
                     // LÓGICA: Lista vazia -> Mostra o estado vazio e um botão de ação
                     <div style={styles.emptyState}>
                         <h2>Nenhum cliente cadastrado.</h2>
-                        <p>Clique em "Novo Cliente" para iniciar o cadastro.</p>
+                        <p>Clique em "Novo Cliente" acima ou abaixo para iniciar o cadastro.</p>
                         <Button 
                             title="Cadastrar Agora" 
                             onClick={() => setIsModalOpen(true)} 
@@ -110,7 +112,7 @@ const ClientPage: React.FC = () => {
 
             {/* Modal de Cadastro/Edição */}
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingCliente ? 'Editar Cliente' : 'Novo Cliente'}>
-                {/* ✅ O formulário é renderizado sem Card, pois já está no Modal */}
+                {/* Renderiza o ClienteForm e passa o cliente em edição/null */}
                 <ClienteForm clienteInicial={editingCliente} onSave={handleCloseModal} />
             </Modal>
         </DashboardLayout>
@@ -123,8 +125,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 20,
-        // Adicionando um padding/margem para alinhar o título com o conteúdo, 
-        // e ser responsivo
         padding: '0 20px 0 0', 
     },
     pageTitle: {
@@ -132,7 +132,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: Colors.primary,
         margin: 0,
         fontWeight: 'bold',
-        whiteSpace: 'nowrap', // Garante que o título não quebre o layout
+        whiteSpace: 'nowrap', 
     },
     listCardContainer: {
         padding: 20,

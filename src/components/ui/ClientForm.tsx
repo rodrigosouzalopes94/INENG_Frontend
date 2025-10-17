@@ -27,7 +27,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
     const [errors, setErrors] = useState<Partial<Record<keyof ClientePayload, string>>>({});
     
     // Puxa a lógica de submissão, loading e erro do hook de clientes
-    const { submitCliente, loading, error: apiError } = useClientes(); // Renomeia o erro da API para 'apiError'
+    const { submitCliente, loading, error: apiError } = useClientes(); 
     
     const isEditing = !!clienteInicial;
     const isPJ = formData.tipoPessoa === 'JURIDICA';
@@ -47,11 +47,11 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         setErrors({}); 
     }, [clienteInicial]);
     
-    // Manipuladores e Validação (Omitidos para brevidade, mas estão no código)
-
+    // Manipuladores
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         
+        // Lógica de sanitização em tempo real (apenas números no estado)
         if (name === 'cpf' || name === 'cnpj' || name === 'cep') {
             const rawValue = value.replace(/\D/g, '');
             let limitedValue = rawValue;
@@ -83,8 +83,11 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         const newErrors: Partial<Record<keyof ClientePayload, string>> = {};
         
         if (!formData.nomeOuRazao) newErrors.nomeOuRazao = 'Nome/Razão Social é obrigatório.';
+        
+        // Validação de CEP
         if (formData.cep.replace(/\D/g, '').length !== 8) newErrors.cep = 'CEP deve ter 8 dígitos.';
 
+        // Validação de CPF/CNPJ
         const doc = isPJ ? formData.cnpj : formData.cpf;
         const requiredLength = isPJ ? 14 : 11;
         const docName = isPJ ? 'CNPJ' : 'CPF';
@@ -104,26 +107,27 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         
         if (!validate()) return;
         
+        // Sanitização Crítica no Payload
+        const cleanCnpj = formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null;
+        const cleanCpf = formData.cpf ? formData.cpf.replace(/\D/g, '') : null;
+
         const payload: ClientePayload = {
             ...formData,
             tipoPessoa: isPJ ? 'JURIDICA' : 'FISICA', 
             cep: formData.cep.replace(/\D/g, ''), 
-            cpf: isPJ ? null : formData.cpf.replace(/\D/g, ''), 
-            cnpj: isPJ ? null : formData.cnpj.replace(/\D/g, ''),
+            // Garante que o campo irrelevante seja NULL e o relevante seja a string limpa
+            cnpj: isPJ ? cleanCnpj : null,
+            cpf: isPJ ? null : cleanCpf,
             enderecoCompleto: formData.enderecoCompleto,
         } as ClientePayload;
 
         const success = await submitCliente(payload, clienteInicial?.id); 
 
         if (success) {
-            // ✅ FEEDBACK AMIGÁVEL: Mensagem de sucesso
             const action = clienteInicial ? 'alterado' : 'cadastrado';
             alert(`Cliente ${payload.nomeOuRazao} ${action} com sucesso!`);
-            
-            onSave(); // Fecha o modal e atualiza a lista
+            onSave(); 
         } 
-        // O erro (se houver) já está no estado 'apiError' e será exibido no JSX, 
-        // mas o alert direto foi removido para evitar duplicação
     };
 
 
@@ -184,7 +188,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
                     name="cep"
                     value={maskCEP(formData.cep || '')}
                     onChange={handleChange}
-                    maxLength={10} // 8 dígitos + hífen
+                    maxLength={10} 
                     error={errors.cep}
                     required
                 />
@@ -210,7 +214,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
     );
 };
 
-// ... (Estilos permanecem os mesmos)
+// Estilos formatados e completos
 const styles: { [key: string]: React.CSSProperties } = {
     formWrapper: { width: '100%', maxWidth: '550px', margin: '0 auto', padding: '10px' },
     formTitle: { color: Colors.primary, fontSize: '20px', fontWeight: 'bold', marginBottom: '25px', textAlign: 'center', width: '100%' },

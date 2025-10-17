@@ -12,7 +12,8 @@ import ResetPasswordPage from '../pages/ResetPasswordPage';
 // Telas de Módulos
 import DashboardPage from '../pages/DashboardPage'; // Sua Dashboard existente
 import ClientPage from '../pages/ClientPage';// ✅ NOVO: Página de Clientes
-import ProtectedRoute from './ProtectedRoute'; // Componente para rotas protegidas
+import ProtectedRoute from './ProtectedRoute';
+import ObraScreen from '../pages/ObraScreen'; // Componente para rotas protegidas
 
 const AppRoutes: React.FC = () => {
     return (
@@ -33,7 +34,7 @@ const AppRoutes: React.FC = () => {
                         </ProtectedRoute>
                     }
                 />
-                
+
                 {/* ✅ ROTA PROTEGIDA PARA CLIENTES */}
                 <Route
                     path="/clientes"
@@ -43,7 +44,15 @@ const AppRoutes: React.FC = () => {
                         </ProtectedRoute>
                     }
                 />
-                
+                <Route
+                    path="/obras"
+                    element={
+                        <ProtectedRoute>
+                            <ObraScreen />
+                        </ProtectedRoute>
+                    }
+                />
+
                 {/* ROTA DE REDIRECIONAMENTO (Fallback) */}
                 <Route path="*" element={<Navigate to="/" />} />
             </Routes>

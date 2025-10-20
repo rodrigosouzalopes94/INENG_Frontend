@@ -10,10 +10,13 @@ import RequestResetPage from '../pages/RequestResetPage';
 import ResetPasswordPage from '../pages/ResetPasswordPage';
 
 // Telas de Módulos
-import DashboardPage from '../pages/DashboardPage'; // Sua Dashboard existente
-import ClientPage from '../pages/ClientPage';// ✅ NOVO: Página de Clientes
+import DashboardPage from '../pages/DashboardPage';
 import ProtectedRoute from './ProtectedRoute';
-import ObraScreen from '../pages/ObraScreen'; // Componente para rotas protegidas
+import ClientPage from '../pages/ClientPage';
+import ObraPage from '../pages/ObraPage';
+
+import UnauthorizedPage from '../pages/UnanthorizedPage';
+import NotFoundPage from '../pages/NotFoundPage';
 
 const AppRoutes: React.FC = () => {
     return (
@@ -24,6 +27,9 @@ const AppRoutes: React.FC = () => {
                 <Route path="/register-user" element={<UserRegisterPage />} />
                 <Route path="/request-reset" element={<RequestResetPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+                {/* ADICIONADO: ROTA PÚBLICA DE ERRO (ACESSO NEGADO) */}
+                <Route path="/acesso-negado" element={<UnauthorizedPage />} />
 
                 {/* ROTAS PROTEGIDAS (Dashboard, Clientes, Obras, etc.) */}
                 <Route
@@ -48,13 +54,16 @@ const AppRoutes: React.FC = () => {
                     path="/obras"
                     element={
                         <ProtectedRoute>
-                            <ObraScreen />
+                            <ObraPage />
                         </ProtectedRoute>
                     }
                 />
 
-                {/* ROTA DE REDIRECIONAMENTO (Fallback) */}
-                <Route path="*" element={<Navigate to="/" />} />
+                {/* MODIFICADO: ROTA DE FALLBACK (404) 
+                  Isso substitui o seu <Navigate to="/" /> 
+                  e deve ser a ÚLTIMA rota da lista.
+                */}
+                <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </BrowserRouter>
     );

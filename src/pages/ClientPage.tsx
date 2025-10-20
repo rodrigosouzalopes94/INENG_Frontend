@@ -50,8 +50,7 @@ const ClientPage: React.FC = () => {
         fetchClientes(); // Atualiza a lista após fechar o modal
     };
 
-    // Definição das colunas da tabela (Utilizando o componente Table genérico)
-    // O tipo genérico é inferido aqui como Cliente
+    // Definição das colunas da tabela
     const columns = useMemo(() => [
         { header: 'ID', accessor: 'id' as const },
         { header: 'Nome/Razão Social', accessor: 'nomeOuRazao' },
@@ -86,9 +85,14 @@ const ClientPage: React.FC = () => {
     // 4. Renderização Principal
     return (
         <DashboardLayout menuItems={menuItems} userRole={userRole}>
+            {/* MODIFICAÇÃO NO JSX: Envolver o Button em uma div */}
             <div style={styles.header}>
                 <h1 style={styles.pageTitle}>Gerenciamento de Clientes</h1>
-                <Button title="Novo Cliente" variant="primary" onClick={handleNew} />
+                
+                {/* O Button agora está dentro de um wrapper para posicionamento absoluto */}
+                <div style={styles.buttonWrapper}>
+                    <Button title="Novo Cliente" variant="primary" onClick={handleNew} />
+                </div>
             </div>
 
             <Card style={styles.listCardContainer}>
@@ -120,12 +124,14 @@ const ClientPage: React.FC = () => {
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
+    // MODIFICAÇÃO NO CSS
     header: {
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'center', // MUDADO de 'space-between'
         alignItems: 'center',
         marginBottom: 20,
-        padding: '0 20px 0 0', 
+        position: 'relative', // ADICIONADO
+        // 'padding' removido, pois o wrapper do botão cuidará do posicionamento
     },
     pageTitle: {
         fontSize: 28,
@@ -133,6 +139,14 @@ const styles: { [key: string]: React.CSSProperties } = {
         margin: 0,
         fontWeight: 'bold',
         whiteSpace: 'nowrap', 
+        textAlign: 'center', // Mantido
+    },
+    // ESTILO ADICIONADO (Idêntico ao da ObraScreen)
+    buttonWrapper: {
+        position: 'absolute',
+        right: 0,
+        top: '50%',
+        transform: 'translateY(-50%)',
     },
     listCardContainer: {
         padding: 20,

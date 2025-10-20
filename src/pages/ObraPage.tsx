@@ -26,9 +26,10 @@ const menuItems = [
     { label: 'Clientes', path: '/clientes' },
     { label: 'Obras', path: '/obras' },
     { label: 'Equipamentos', path: '/equipamentos' },
+    { label: 'Funcionários', path: '/funcionarios'},
 ];
 
-const ObraScreen: React.FC = () => {
+const ObraPage: React.FC = () => {
     const { clientes, loading: loadingClientes, error: errorClientes } = useClientes();
     const { obras, loading: loadingObras, fetchObras } = useObrasList();
     const [selectedObra, setSelectedObra] = useState<Obra | null>(null);
@@ -254,4 +255,4 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
 };
 
-export default ObraScreen;
+export default ObraPage;

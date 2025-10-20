@@ -5,7 +5,8 @@ import { useAuthContext } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
 import Card from '../components/ui/Card';
 import DashboardLayout from '../components/ui/DashboardLayout';
-import { AiOutlineUser, AiOutlineProject, AiOutlineDollar, AiOutlineTeam, AiOutlineTool } from 'react-icons/ai';
+// MODIFICADO: Removido AiOutlineUser e AiOutlineDollar pois não são mais usados
+import { AiOutlineProject, AiOutlineTeam, AiOutlineTool } from 'react-icons/ai'; 
 import { useDashboardData } from '../hooks/useDashboardData';
 
 const menuItems = [
@@ -31,21 +32,27 @@ const DashboardPage: React.FC = () => {
         );
     }
 
+    // MODIFICADO: Exibindo apenas os cards solicitados
     const metrics = [
-        { label: 'Usuários', value: 120, icon: <AiOutlineUser size={30} color={Colors.accent} /> },
-        { label: 'Projetos', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> },
-        { label: 'Faturamento', value: 'R$ 350k', icon: <AiOutlineDollar size={30} color={Colors.accent} /> },
+        // { label: 'Usuários', value: 120, icon: <AiOutlineUser size={30} color={Colors.accent} /> }, // Removido
+        { label: 'Obras', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> }, // Label atualizado de 'Projetos'
+        // { label: 'Faturamento', value: 'R$ 350k', icon: <AiOutlineDollar size={30} color={Colors.accent} /> }, // Removido
         { label: 'Clientes', value: clientes.length, icon: <AiOutlineTeam size={30} color={Colors.accent} /> },
-        { label: 'Equipamentos', value: 18, icon: <AiOutlineTool size={30} color={Colors.accent} /> },
+        { label: 'Equipamentos', value: 18, icon: <AiOutlineTool size={30} color={Colors.accent} /> }, // Mantido (valor '18' é estático por enquanto)
     ];
 
     return (
         <DashboardLayout menuItems={menuItems} userRole={userRole}>
+            {/* MODIFICADO (Reaplicando correção anterior): JSX do header */}
             <header style={styles.header}>
                 <h1 style={styles.pageTitle}>Dashboard</h1>
-                <p style={styles.welcomeText}>
-                    Bem-vindo, <strong style={{ color: Colors.primary }}>{userName} ({userRole})</strong>!
-                </p>
+                
+                {/* Wrapper para o texto de boas-vindas */}
+                <div style={styles.welcomeWrapper}>
+                    <p style={styles.welcomeText}>
+                        Bem-vindo, <strong style={{ color: Colors.primary }}>{userName} ({userRole})</strong>!
+                    </p>
+                </div>
             </header>
 
             {/* Cards métricos */}
@@ -100,29 +107,41 @@ const DashboardPage: React.FC = () => {
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
+    // MODIFICADO (Reaplicando correção anterior): Estilo do header
     header: {
         display: 'flex',
-        justifyContent: 'space-between',
+        justifyContent: 'center', // MUDADO de 'space-between'
         alignItems: 'center',
         marginBottom: 30,
         width: '100%',
+        position: 'relative', // ADICIONADO
     },
     pageTitle: {
         fontSize: 28,
         color: Colors.primary,
         margin: 0,
         fontWeight: 'bold',
+        textAlign: 'center', // Adicionado para garantir
+    },
+    // ADICIONADO (Reaplicando correção anterior): Wrapper do texto
+    welcomeWrapper: {
+        position: 'absolute',
+        right: 0,
+        top: '50%',
+        transform: 'translateY(-50%)',
     },
     welcomeText: {
         fontSize: 18,
         color: Colors.text,
         margin: 0,
     },
+    
+    // MODIFICADO (Pedido atual): Centralizando os cards
     cardsContainer: {
         display: 'flex',
         gap: 20,
         flexWrap: 'wrap',
-        justifyContent: 'flex-start',
+        justifyContent: 'center', // MUDADO de 'flex-start'
         marginBottom: 30,
     },
     metricCard: {
@@ -148,11 +167,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     centralContainer: {
         display: 'flex',
-        justifyContent: 'flex-start', // Cards próximos ao Drawer
+        justifyContent: 'flex-start',
         gap: 50,
         flexWrap: 'wrap',
         marginBottom: 50,
-        paddingLeft: 20, // Margem do lado esquerdo
+        paddingLeft: 20,
     },
     column: {
         display: 'flex',

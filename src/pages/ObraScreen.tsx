@@ -1,162 +1,257 @@
 // src/pages/ObraScreen.tsx
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Colors } from '../theme/colors';
+import React, { useState } from 'react';
+import { useClientes } from '../hooks/useClientes';
+import { useObrasList } from '../hooks/useObrasList';
+import { ObraService } from '../api/ObraService';
+import type { Obra } from '../models/Obra';
 import Card from '../components/ui/Card';
 import DashboardLayout from '../components/ui/DashboardLayout';
-import Table from '../components/ui/Table';
-import Modal from '../components/ui/Modal';
-import Button from '../components/ui/Button';
+
+// Imports do Radix com Portal e Overlay
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogTitle, 
+    DialogClose,
+    DialogPortal, // Necessário para centralizar
+    DialogOverlay // Fundo escuro
+} from '@radix-ui/react-dialog';
+
 import ObraForm from '../components/ui/ObraForm';
-import { useAuthContext } from '../context/AuthContext';
-import { useObrasList } from '../hooks/useObrasList';
-import type { Obra } from '../models/Obra';
-
-// Componente para exibir detalhes da obra no modal
-const ObraDetailModalContent: React.FC<{ obra: Obra }> = ({ obra }) => {
-    return (
-        <div style={detailStyles.container}>
-            <h3 style={detailStyles.title}>Detalhes da Obra {obra.nomeObra}</h3>
-            <p><strong>Cliente:</strong> {obra.cliente?.nomeOuRazao || 'N/A'}</p>
-            <p><strong>Tipo:</strong> {obra.tipoObra}</p>
-            <p><strong>{obra.tipoObra === 'CONSTRUCAO' ? 'CNO' : 'Descrição'}:</strong> {obra.cno || obra.descricao}</p>
-
-            <h4 style={detailStyles.photosTitle}>Fotos ({obra.fotos?.length || 0})</h4>
-            <div style={detailStyles.photosGrid}>
-                {obra.fotos?.map(foto => (
-                    <img key={foto.id} src={`http://localhost:3000${foto.url}`} style={detailStyles.photo} alt={`Foto ${foto.id}`} />
-                ))}
-            </div>
-        </div>
-    );
-};
+import { Colors } from '../theme/colors';
 
 const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Clientes', path: '/clientes' },
     { label: 'Obras', path: '/obras' },
+    { label: 'Equipamentos', path: '/equipamentos' },
 ];
 
 const ObraScreen: React.FC = () => {
-    const { obras, loading, error, removeObra, fetchObras } = useObrasList();
-    const { user } = useAuthContext();
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { clientes, loading: loadingClientes, error: errorClientes } = useClientes();
+    const { obras, loading: loadingObras, fetchObras } = useObrasList();
     const [selectedObra, setSelectedObra] = useState<Obra | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
-    const userRole = user?.role === 'ADMIN' ? 'ADMIN' : 'GESTOR';
-
-    // Logs para debug
-    useEffect(() => {
-        console.log('Estado obras:', obras);
-    }, [obras]);
-
-    // Funções da tabela e modal
-    const handleViewDetails = (obra: Obra) => {
-        setSelectedObra(obra);
-        setIsEditing(false);
-        setIsModalOpen(true);
-    };
-
-    const handleEdit = (obra: Obra) => {
-        setSelectedObra(obra);
-        setIsEditing(true);
-        setIsModalOpen(true);
-    };
-
-    const handleNew = () => {
+    const handleAddObra = () => {
         setSelectedObra(null);
-        setIsEditing(true);
-        setIsModalOpen(true);
+        setDialogOpen(true);
     };
 
-    const handleSave = () => {
-        setIsModalOpen(false);
-        setSelectedObra(null);
-        setIsEditing(false);
-        fetchObras(); // Atualiza a lista
+    const handleEditObra = (obra: Obra) => {
+        setSelectedObra(obra);
+        setDialogOpen(true);
     };
 
-    // Colunas da tabela
-    const columns = useMemo(() => [
-        { header: 'ID', accessor: 'id' as const, width: '5%' },
-        { header: 'Nome', accessor: 'nomeObra', width: '20%' },
-        { header: 'Cliente', accessor: (o: Obra) => o.cliente?.nomeOuRazao || 'N/A', width: '20%' },
-        { header: 'Tipo', accessor: 'tipoObra', width: '10%' },
-        { header: 'Início', accessor: (o: Obra) => new Date(o.dataInicio).toLocaleDateString(), width: '15%' },
-        { header: 'Ações', accessor: (o: Obra) => (
-            <div style={{ display: 'flex', gap: '8px' }}>
-                <Button title="Ver" variant="ghost" onClick={() => handleViewDetails(o)} />
-                <Button title="Editar" variant="ghost" onClick={() => handleEdit(o)} />
-                <Button title="Excluir" variant="danger" onClick={() => removeObra(o.id)} />
-            </div>
-        )},
-    ], [removeObra]);
+    const handleDeleteObra = async (id: string | number) => {
+        if (window.confirm('Tem certeza que deseja excluir esta obra? Esta ação não pode ser desfeita.')) {
+            try {
+                await ObraService.deleteObra(id);
+                await fetchObras();
+            } catch (error) {
+                console.error("Erro ao excluir obra:", error);
+                alert("Não foi possível excluir a obra. Tente novamente.");
+            }
+        }
+    };
+
+    const handleSaved = async () => {
+        setDialogOpen(false);
+        await fetchObras();
+    };
+
+    // Esta é a função que o botão "Cancelar" precisa chamar
+    const handleClose = () => {
+        setDialogOpen(false);
+    };
 
     return (
-        <DashboardLayout menuItems={menuItems} userRole={userRole}>
-            <div style={styles.pageHeader}>
-                <h1 style={styles.pageTitle}>Gerenciamento de Obras</h1>
-                <Button title="Nova Obra" variant="primary" onClick={handleNew} />
+        <DashboardLayout menuItems={menuItems} userRole="GESTOR">
+            <header style={styles.header}>
+                <h1 style={styles.pageTitle}>Obras</h1>
+                <button style={styles.addButton} onClick={handleAddObra}>
+                    + Nova Obra
+                </button>
+            </header>
+
+            {(loadingObras || loadingClientes) && <p>Carregando...</p>}
+            {errorClientes && <p style={{ color: 'red' }}>{errorClientes}</p>}
+
+            <div style={styles.cardsContainer}>
+                {obras.map((obra) => (
+                    <Card key={obra.id} style={styles.card}>
+                        <p style={styles.cardLabel}>
+                            {obra.tipoObra === 'CONSTRUCAO' ? 'Construção' : 'Reforma'}
+                        </p>
+                        <p style={styles.cardTitle}>{obra.nomeObra}</p>
+                        <p style={styles.cardDetail}>Cliente: {obra.cliente?.nomeOuRazao}</p>
+                        <p style={styles.cardDetail}>Endereço: {obra.enderecoCompleto}</p>
+                        
+                        <div style={styles.cardActions}>
+                            <button style={styles.editButton} onClick={() => handleEditObra(obra)}>
+                                Editar
+                            </button>
+                            <button 
+                                style={styles.deleteButton} 
+                                onClick={() => handleDeleteObra(obra.id)}
+                            >
+                                Excluir
+                            </button>
+                        </div>
+                    </Card>
+                ))}
             </div>
 
-            <Card style={styles.listCardContainer}>
-                {loading ? (
-                    <div style={styles.centerContent}>Carregando Obras...</div>
-                ) : obras.length > 0 ? (
-                    <Table data={obras} columns={columns} />
-                ) : (
-                    <div style={styles.emptyState}>
-                        <h2>Nenhuma obra cadastrada.</h2>
-                        <Button title="Cadastrar Obra" onClick={handleNew} variant="accent" style={{ marginTop: 20 }} />
-                    </div>
-                )}
-            </Card>
-
-            {error && (
-                <div style={styles.errorContainer}>
-                    <p style={{ color: Colors.danger, textAlign: 'center' }}>Erro ao carregar dados: {error}</p>
-                    <Button title="Tentar Novamente" onClick={fetchObras} variant="secondary" style={{ marginTop: 20 }} />
-                </div>
-            )}
-
-            <Modal
-                isOpen={isModalOpen}
-                onClose={handleSave}
-                title={isEditing ? `Editando Obra #${selectedObra?.id || 'Nova'}` : `Detalhes da Obra`}
-            >
-                {isEditing && (
-                    <ObraForm obraInicial={selectedObra} onSave={handleSave} />
-                )}
-                {!isEditing && selectedObra && (
-                    <>
-                        <ObraDetailModalContent obra={selectedObra} />
-                        <div style={{ textAlign: 'center', marginTop: 20 }}>
-                            <Button title="Mudar para Edição" onClick={() => handleEdit(selectedObra)} variant="secondary" />
-                        </div>
-                    </>
-                )}
-            </Modal>
+            {/* Modal com Portal */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogPortal> 
+                    <DialogOverlay style={styles.dialogOverlay} />
+                    
+                    <DialogContent style={styles.dialogContent}>
+                        <DialogTitle style={styles.dialogTitle}>
+                            {selectedObra ? 'Editar Obra' : 'Nova Obra'}
+                        </DialogTitle>
+                        <ObraForm
+                            obra={selectedObra}
+                            clientes={clientes}
+                            onSaved={handleSaved}
+                            // AJUSTE FEITO AQUI:
+                            // A prop 'onCancel' foi renomeada para 'onClose'
+                            // para bater com a interface do ObraForm.
+                            onClose={handleClose} 
+                        />
+                        <DialogClose asChild>
+                            <button style={styles.dialogClose}>X</button>
+                        </DialogClose>
+                    </DialogContent>
+                </DialogPortal>
+            </Dialog>
         </DashboardLayout>
     );
 };
 
+// Estilos com todas as features (título centralizado e modal centralizado)
 const styles: { [key: string]: React.CSSProperties } = {
-    pageHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, padding: '0 20px 0 0' },
-    pageTitle: { fontSize: 28, color: Colors.primary, margin: 0, fontWeight: 'bold' },
-    listCardContainer: { padding: 20 },
-    emptyState: { padding: 50, textAlign: 'center', marginTop: 5 },
-    errorContainer: { padding: 20, marginTop: 30, backgroundColor: '#fff4f4', border: `1px solid ${Colors.danger}`, borderRadius: '8px' },
-    centerContent: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100vh - 100px)' },
-};
-
-const detailStyles: { [key: string]: React.CSSProperties } = {
-    container: { padding: 10, maxHeight: '60vh', overflowY: 'auto' },
-    title: { fontSize: 22, color: Colors.accent, marginBottom: 10, fontWeight: 'bold' },
-    photosTitle: { fontSize: 16, color: Colors.primary, marginTop: 15, marginBottom: 10, borderBottom: `1px solid ${Colors.background}` },
-    photosGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 10 },
-    photo: { width: '100%', height: 'auto', objectFit: 'cover', borderRadius: '4px' },
+    header: {
+        display: 'flex',
+        justifyContent: 'center', 
+        alignItems: 'center',
+        marginBottom: 30,
+        position: 'relative', 
+    },
+    pageTitle: {
+        fontSize: 28,
+        color: Colors.primary,
+        fontWeight: 'bold',
+    },
+    addButton: {
+        padding: '8px 15px',
+        backgroundColor: Colors.accent,
+        color: 'white',
+        border: 'none',
+        borderRadius: 6,
+        cursor: 'pointer',
+        position: 'absolute',
+        right: 0,
+        top: '50%',
+        transform: 'translateY(-50%)',
+    },
+    cardsContainer: {
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 20,
+        justifyContent: 'flex-start',
+    },
+    card: {
+        width: 250,
+        minHeight: 140, 
+        padding: 15,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+        borderRadius: 8,
+        boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+        backgroundColor: 'white',
+    },
+    cardLabel: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.secondary,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.primary,
+    },
+    cardDetail: {
+        fontSize: 14,
+        color: Colors.text,
+    },
+    cardActions: {
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: 10,
+        marginTop: 'auto',
+        paddingTop: 10,
+    },
+    editButton: {
+        padding: '6px 12px',
+        borderRadius: 6,
+        border: 'none',
+        backgroundColor: Colors.accent,
+        color: 'white',
+        cursor: 'pointer',
+    },
+    deleteButton: {
+        padding: '6px 12px',
+        borderRadius: 6,
+        border: 'none',
+        backgroundColor: '#DC3545',
+        color: 'white',
+        cursor: 'pointer',
+    },
+    // Estilo para o fundo escuro (Overlay)
+    dialogOverlay: {
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 40,
+    },
+    // Estilo para o conteúdo do Modal centralizado
+    dialogContent: {
+        width: 500,
+        maxWidth: '95%',
+        padding: 25,
+        borderRadius: 10,
+        backgroundColor: 'white',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 15,
+        
+        // Centralização com position fixed
+        position: 'fixed', 
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 50,
+    },
+    dialogTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 15,
+        color: Colors.primary,
+    },
+    dialogClose: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        background: 'transparent',
+        border: 'none',
+        fontSize: 18,
+        cursor: 'pointer',
+    },
 };
 
 export default ObraScreen;

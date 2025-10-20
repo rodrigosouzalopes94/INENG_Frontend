@@ -1,53 +1,46 @@
 // src/pages/DashboardPage.tsx
 
 import React from 'react';
-import { useAuthContext } from '../context/AuthContext'; 
+import { useAuthContext } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
 import Card from '../components/ui/Card';
 import DashboardLayout from '../components/ui/DashboardLayout';
 import { AiOutlineUser, AiOutlineProject, AiOutlineDollar, AiOutlineTeam, AiOutlineTool } from 'react-icons/ai';
+import { useDashboardData } from '../hooks/useDashboardData';
 
-// Definição dos itens de menu (sem alteração)
 const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Clientes', path: '/clientes' }, 
+    { label: 'Clientes', path: '/clientes' },
     { label: 'Obras', path: '/obras' },
     { label: 'Equipamentos', path: '/equipamentos' },
-    { label: 'Funcionários', path: '/funcionarios', allowedRoles: ['GESTOR', 'ADMIN'] }, // Ajustando para ADMIN
+    { label: 'Funcionários', path: '/funcionarios', allowedRoles: ['GESTOR', 'ADMIN'] },
 ];
 
 const DashboardPage: React.FC = () => {
-    // ✅ USO DO HOOK DE AUTENTICAÇÃO: Puxa o user logado (que vem do localStorage)
-    const { user, loading } = useAuthContext();
-    
-    // Define a role e o nome de forma segura
+    const { user, loading: authLoading } = useAuthContext();
+    const { obras, clientes, loading } = useDashboardData();
+
     const userName = user?.name || 'Visitante';
     const userRole: 'GESTOR' | 'ADMIN' = user?.role === 'ADMIN' ? 'ADMIN' : 'GESTOR';
 
-    // Se o layout estiver carregando (lendo o token), mostra o loading
-    if (loading) {
-        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>Carregando Dashboard...</div>;
+    if (authLoading || loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+                Carregando Dashboard...
+            </div>
+        );
     }
-    
-    // Dados estáticos para demonstração
+
     const metrics = [
         { label: 'Usuários', value: 120, icon: <AiOutlineUser size={30} color={Colors.accent} /> },
-        { label: 'Projetos', value: 45, icon: <AiOutlineProject size={30} color={Colors.accent} /> },
+        { label: 'Projetos', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> },
         { label: 'Faturamento', value: 'R$ 350k', icon: <AiOutlineDollar size={30} color={Colors.accent} /> },
-        { label: 'Clientes', value: 32, icon: <AiOutlineTeam size={30} color={Colors.accent} /> },
+        { label: 'Clientes', value: clientes.length, icon: <AiOutlineTeam size={30} color={Colors.accent} /> },
         { label: 'Equipamentos', value: 18, icon: <AiOutlineTool size={30} color={Colors.accent} /> },
-    ];
-
-    const recentProjects = [
-        { name: 'Projeto A', status: 'Em andamento', budget: 'R$ 50k' },
-        { name: 'Projeto B', status: 'Concluído', budget: 'R$ 120k' },
-        { name: 'Projeto C', status: 'Em andamento', budget: 'R$ 80k' },
-        { name: 'Projeto D', status: 'Em atraso', budget: 'R$ 25k' },
     ];
 
     return (
         <DashboardLayout menuItems={menuItems} userRole={userRole}>
-            
             <header style={styles.header}>
                 <h1 style={styles.pageTitle}>Dashboard</h1>
                 <p style={styles.welcomeText}>
@@ -66,30 +59,40 @@ const DashboardPage: React.FC = () => {
                 ))}
             </div>
 
-            {/* Containers de Conteúdo */}
-            <div style={styles.twoColumnGrid}>
-                
-                {/* Lista de projetos recentes */}
-                <div style={styles.listContainer}>
-                    <h2 style={styles.sectionTitle}>Projetos Recentes</h2>
-                    {recentProjects.map((proj, idx) => (
-                        <Card key={idx} style={styles.listCard}>
-                            <p style={styles.listCardTitle}>{proj.name}</p>
-                            <p style={styles.listCardDetail}>Status: {proj.status}</p>
-                            <p style={styles.listCardDetail}>Orçamento: {proj.budget}</p>
+            {/* Conteúdo centralizado, porém mais à esquerda */}
+            <div style={styles.centralContainer}>
+                {/* Obras Recentes */}
+                <div style={styles.column}>
+                    <h2 style={styles.sectionTitle}>Obras Recentes</h2>
+                    {obras.slice(0, 5).map((obra) => (
+                        <Card
+                            key={obra.id}
+                            style={{
+                                ...styles.listCard,
+                                backgroundColor:
+                                    obra.tipoObra === 'CONSTRUCAO' ? Colors.primaryLight : Colors.accentLight,
+                                borderLeft: `5px solid ${obra.tipoObra === 'CONSTRUCAO' ? Colors.primary : Colors.accent}`,
+                            }}
+                        >
+                            <p style={styles.listCardTitle}>{obra.nomeObra}</p>
+                            <p style={styles.listCardDetail}>Tipo: {obra.tipoObra}</p>
+                            <p style={styles.listCardDetail}>Cliente: {obra.cliente?.nomeOuRazao}</p>
                         </Card>
                     ))}
                 </div>
 
-                {/* Seção adicional de relatórios */}
-                <div style={styles.reportsContainer}>
-                    <h2 style={styles.sectionTitle}>Relatórios Rápidos</h2>
-                    <div style={styles.reportsGrid}>
-                        <Card style={styles.reportCard}>Vendas - Janeiro</Card>
-                        <Card style={styles.reportCard}>Obras Concluídas</Card>
-                        <Card style={styles.reportCard}>Equipamentos</Card>
-                        <Card style={styles.reportCard}>Funcionários</Card>
-                    </div>
+                {/* Clientes Recentes */}
+                <div style={styles.column}>
+                    <h2 style={styles.sectionTitle}>Clientes Recentes</h2>
+                    {clientes.slice(0, 5).map((cliente) => (
+                        <Card key={cliente.id} style={styles.listCard}>
+                            <p style={styles.listCardTitle}>{cliente.nomeOuRazao}</p>
+                            <p style={styles.listCardDetail}>Tipo: {cliente.tipoPessoa}</p>
+                            <p style={styles.listCardDetail}>
+                                {cliente.tipoPessoa === 'FISICA' ? `CPF: ${cliente.cpf}` : `CNPJ: ${cliente.cnpj}`}
+                            </p>
+                        </Card>
+                    ))}
                 </div>
             </div>
         </DashboardLayout>
@@ -143,30 +146,30 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: Colors.primary,
         margin: 0,
     },
-    twoColumnGrid: {
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr', 
-        gap: 30,
-        alignItems: 'flex-start',
+    centralContainer: {
+        display: 'flex',
+        justifyContent: 'flex-start', // Cards próximos ao Drawer
+        gap: 50,
+        flexWrap: 'wrap',
+        marginBottom: 50,
+        paddingLeft: 20, // Margem do lado esquerdo
     },
-    sectionTitle: {
-        color: Colors.primary, 
-        marginBottom: 15,
-        fontSize: 22,
-        fontWeight: 'bold',
-    },
-    listContainer: {
+    column: {
         display: 'flex',
         flexDirection: 'column',
-        gap: 15,
+        gap: 20,
+        minWidth: 320,
+        maxWidth: 400,
     },
     listCard: {
-        padding: 20,
+        padding: 25,
         display: 'flex',
         flexDirection: 'column',
-        gap: 5,
+        gap: 8,
         alignItems: 'flex-start',
-        width: '100%',
+        borderRadius: 12,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        transition: 'transform 0.2s',
     },
     listCardTitle: {
         fontWeight: 'bold',
@@ -179,19 +182,24 @@ const styles: { [key: string]: React.CSSProperties } = {
         margin: 0,
         fontSize: 14,
     },
-    reportsContainer: {
-        // Estilos de container
-    },
-    reportsGrid: {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 15,
-    },
-    reportCard: {
-        padding: 20,
-        textAlign: 'center',
-        fontWeight: 'bold',
+    sectionTitle: {
         color: Colors.primary,
+        marginBottom: 10,
+        fontSize: 22,
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+
+    // Responsividade
+    '@media(max-width: 900px)': {
+        centralContainer: {
+            flexDirection: 'column',
+            alignItems: 'center',
+            paddingLeft: 0,
+        },
+        column: {
+            maxWidth: '90%',
+        },
     },
 };
 

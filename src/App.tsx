@@ -1,15 +1,18 @@
-// src/App.tsx (Ajustado)
-
+// src/App.tsx
 import React from 'react';
 import AppRoutes from './routes/AppRoutes';
-import { AuthProvider } from './context/AuthContext'; // Importa o Provedor
+import { AuthProvider } from './context/AuthContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const App: React.FC = () => {
     return (
-        // ✅ O AuthProvider deve encapsular as Rotas
-        <AuthProvider>
-            <AppRoutes />
-        </AuthProvider>
+        <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+                <AppRoutes />
+            </AuthProvider>
+        </QueryClientProvider>
     );
 };
 

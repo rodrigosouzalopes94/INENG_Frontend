@@ -6,30 +6,18 @@ import { useClientes } from '../../hooks/useClientes';
 import { ClienteService } from '../../api/ClienteService'; 
 import { useAuthContext } from '../../context/AuthContext';
 import type { Cliente, ClientePayload } from '../../models/Cliente';
-import axios from 'axios';
-
-// ==========================================================
-// ✅ HELPER: Geração de Token Temporário e Único
-// ==========================================================
-// (Este helper não é usado neste arquivo, mas mantém consistência no projeto)
-const generateMockToken = () => `MOCK_TOKEN_${Math.random().toString(36).substring(2, 10)}`;
-
+import type { AxiosError } from 'axios';
 
 // ==========================================================
 // MOCKS DE DEPENDÊNCIAS
 // ==========================================================
-
-// 1. Mock do ClienteService (Simula as respostas da API)
 const mockListClientes = vi.spyOn(ClienteService, 'listClientes');
 const mockCreateCliente = vi.spyOn(ClienteService, 'createCliente');
 const mockDeleteCliente = vi.spyOn(ClienteService, 'deleteCliente');
 
-// 2. Mock do AuthContext (Simula o logout)
 const mockLogout = vi.fn();
 vi.mock('../../context/AuthContext', () => ({
-    useAuthContext: () => ({
-        logout: mockLogout,
-    }),
+    useAuthContext: () => ({ logout: mockLogout }),
 }));
 
 // Dados mock
@@ -41,35 +29,19 @@ const mockNewClienteData: ClientePayload = {
     nomeOuRazao: 'Novo Cliente C', tipoPessoa: 'FISICA', cpf: '000', cep: '777', enderecoCompleto: 'Av Z' 
 } as ClientePayload;
 
-
 describe('useClientes Hook', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockListClientes.mockResolvedValue(mockClientesList); 
-        vi.useFakeTimers(); 
-    });
-    
-    afterEach(() => {
-        vi.useRealTimers(); 
     });
 
-
     // -------------------------------------------------------------
-    // TESTES DE INICIALIZAÇÃO E CARREGAMENTO (R)
+    // TESTES DE INICIALIZAÇÃO E CARREGAMENTO
     // -------------------------------------------------------------
-
     it('deve carregar a lista de clientes e setar loading para false', async () => {
         const { result } = renderHook(() => useClientes());
         
-        expect(result.current.loading).toBe(true);
-
-        await act(async () => {
-            vi.advanceTimersByTime(10); 
-        });
-        
-        await waitFor(() => {
-            expect(result.current.loading).toBe(false); 
-        });
+        await waitFor(() => expect(result.current.loading).toBe(false));
 
         expect(mockListClientes).toHaveBeenCalledTimes(1);
         expect(result.current.clientes).toEqual(mockClientesList);
@@ -77,27 +49,20 @@ describe('useClientes Hook', () => {
     });
 
     it('deve chamar logout e setar erro se o fetch falhar com 401', async () => {
-        const mockError = { response: { status: 401, data: { error: 'Token expirado' } } } as axios.AxiosError;
+        const mockError = { response: { status: 401, data: { error: 'Token expirado' } } } as AxiosError;
         mockListClientes.mockRejectedValue(mockError);
         
         const { result } = renderHook(() => useClientes());
 
-        await act(async () => {
-            vi.advanceTimersByTime(10); 
-        });
-
-        await waitFor(() => {
-            expect(result.current.loading).toBe(false);
-        });
+        await waitFor(() => expect(result.current.loading).toBe(false));
 
         expect(mockLogout).toHaveBeenCalledTimes(1);
         expect(result.current.error).toBe('Token expirado'); 
     });
 
     // -------------------------------------------------------------
-    // TESTES DE CRIAÇÃO (C)
+    // TESTES DE CRIAÇÃO
     // -------------------------------------------------------------
-
     it('deve criar um novo cliente, recarregar a lista e retornar sucesso', async () => {
         const { result } = renderHook(() => useClientes());
         
@@ -116,16 +81,15 @@ describe('useClientes Hook', () => {
         expect(mockListClientes).toHaveBeenCalledTimes(2); 
         expect(result.current.clientes.length).toBe(3); 
     });
-    
+
     // -------------------------------------------------------------
-    // TESTES DE DELEÇÃO (D)
+    // TESTES DE DELEÇÃO
     // -------------------------------------------------------------
-    
     it('deve deletar um cliente e remover da lista sem recarregar', async () => {
         const { result } = renderHook(() => useClientes());
         
         mockDeleteCliente.mockResolvedValue(undefined);
-        window.confirm = vi.fn(() => true); 
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true); 
 
         await waitFor(() => expect(result.current.loading).toBe(false));
         expect(result.current.clientes.length).toBe(2);
@@ -137,5 +101,7 @@ describe('useClientes Hook', () => {
         expect(mockDeleteCliente).toHaveBeenCalledWith(1);
         expect(result.current.clientes.length).toBe(1); 
         expect(result.current.clientes[0].id).toBe(2);
+
+        confirmSpy.mockRestore();
     });
 });

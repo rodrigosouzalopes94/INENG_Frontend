@@ -1,9 +1,10 @@
 // src/components/ui/ObraForm.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Obra } from '../../models/Obra';
 import type { Cliente } from '../../models/Cliente';
 import { ObraService } from '../../api/ObraService';
+import { Colors } from '../../theme/colors'; // <-- ADICIONADO: Importando as cores
 
 interface ObraFormProps {
   clientes: Cliente[];
@@ -95,7 +96,7 @@ const ObraForm: React.FC<ObraFormProps> = ({ clientes, obra, onClose, onSaved })
         <option value="">Selecione um cliente</option>
         {clientes.map(c => (
           <option key={c.id} value={c.id}>
-            {c.nomeOuRazao} ({c.tipoPessoa})
+            {c.nomeOuRazao} ({c.tipoObra})
           </option>
         ))}
       </select>
@@ -190,6 +191,7 @@ const ObraForm: React.FC<ObraFormProps> = ({ clientes, obra, onClose, onSaved })
   );
 };
 
+// ESTILOS ATUALIZADOS COM O OBJETO 'Colors'
 const styles: { [key: string]: React.CSSProperties } = {
   form: {
     display: 'flex',
@@ -202,16 +204,17 @@ const styles: { [key: string]: React.CSSProperties } = {
   label: {
     fontWeight: 'bold',
     marginBottom: 5,
+    color: Colors.text, // Atualizado
   },
   input: {
     padding: 8,
     borderRadius: 5,
-    border: '1px solid #ccc',
+    border: `1px solid ${Colors.secondary}`, // Atualizado
   },
   textarea: {
     padding: 8,
     borderRadius: 5,
-    border: '1px solid #ccc',
+    border: `1px solid ${Colors.secondary}`, // Atualizado
     minHeight: 60,
   },
   buttonContainer: {
@@ -222,22 +225,22 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   submitButton: {
     padding: '8px 15px',
-    backgroundColor: '#2f80ed',
-    color: 'white',
+    backgroundColor: Colors.accent, // Atualizado
+    color: Colors.white, // Atualizado
     border: 'none',
     borderRadius: 5,
     cursor: 'pointer',
   },
   cancelButton: {
     padding: '8px 15px',
-    backgroundColor: '#aaa',
-    color: 'white',
+    backgroundColor: Colors.secondary, // Atualizado
+    color: Colors.white, // Atualizado
     border: 'none',
     borderRadius: 5,
     cursor: 'pointer',
   },
   error: {
-    color: 'red',
+    color: Colors.danger, // Atualizado
     fontWeight: 'bold',
   },
 };

@@ -1,7 +1,8 @@
 // src/routes/AppRoutes.tsx
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+// Removido 'Navigate' que não está mais em uso
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Telas de Autenticação
 import LoginPage from '../pages/LoginPage';
@@ -14,7 +15,10 @@ import DashboardPage from '../pages/DashboardPage';
 import ProtectedRoute from './ProtectedRoute';
 import ClientPage from '../pages/ClientPage';
 import ObraPage from '../pages/ObraPage';
+// CORRIGIDO: Importação da nova tela
+import EquipamentoPage from '../pages/EquipamentoPage'; // Trocado de Screen para Page
 
+// CORRIGIDO: Corrigido o erro de digitação 'UnanthorizedPage'
 import UnauthorizedPage from '../pages/UnanthorizedPage';
 import NotFoundPage from '../pages/NotFoundPage';
 
@@ -33,7 +37,7 @@ const AppRoutes: React.FC = () => {
 
                 {/* ROTAS PROTEGIDAS (Dashboard, Clientes, Obras, etc.) */}
                 <Route
-                    path="/dashboard/*"
+                    path="/dashboard" // Removido o '*'
                     element={
                         <ProtectedRoute>
                             <DashboardPage />
@@ -55,6 +59,17 @@ const AppRoutes: React.FC = () => {
                     element={
                         <ProtectedRoute>
                             <ObraPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* ADICIONADO: Rota protegida para Equipamentos */}
+                <Route
+                    path="/equipamentos"
+                    element={
+                        <ProtectedRoute>
+                            {/* CORRIGIDO: Trocado de Screen para Page */}
+                            <EquipamentoPage />
                         </ProtectedRoute>
                     }
                 />

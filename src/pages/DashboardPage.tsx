@@ -5,7 +5,6 @@ import { useAuthContext } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
 import Card from '../components/ui/Card';
 import DashboardLayout from '../components/ui/DashboardLayout';
-// MODIFICADO: Removido AiOutlineUser e AiOutlineDollar pois não são mais usados
 import { AiOutlineProject, AiOutlineTeam, AiOutlineTool } from 'react-icons/ai'; 
 import { useDashboardData } from '../hooks/useDashboardData';
 
@@ -19,7 +18,8 @@ const menuItems = [
 
 const DashboardPage: React.FC = () => {
     const { user, loading: authLoading } = useAuthContext();
-    const { obras, clientes, loading } = useDashboardData();
+    // 1. ATUALIZADO: Recebendo 'equipamentos' e 'error' do hook
+    const { obras, clientes, equipamentos, loading, error } = useDashboardData();
 
     const userName = user?.name || 'Visitante';
     const userRole: 'GESTOR' | 'ADMIN' = user?.role === 'ADMIN' ? 'ADMIN' : 'GESTOR';
@@ -31,23 +31,31 @@ const DashboardPage: React.FC = () => {
             </div>
         );
     }
+    
+    // ADICIONADO: Tratamento de erro
+    if (error) {
+        return (
+             <DashboardLayout menuItems={menuItems} userRole={userRole}>
+                <p style={{ color: Colors.danger, textAlign: 'center' }}>
+                    Erro ao carregar dados: {error.message}
+                </p>
+            </DashboardLayout>
+        );
+    }
 
-    // MODIFICADO: Exibindo apenas os cards solicitados
+    // 2. ATUALIZADO: Métrica de equipamentos agora é dinâmica
     const metrics = [
-        // { label: 'Usuários', value: 120, icon: <AiOutlineUser size={30} color={Colors.accent} /> }, // Removido
-        { label: 'Obras', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> }, // Label atualizado de 'Projetos'
-        // { label: 'Faturamento', value: 'R$ 350k', icon: <AiOutlineDollar size={30} color={Colors.accent} /> }, // Removido
+        { label: 'Obras', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> },
         { label: 'Clientes', value: clientes.length, icon: <AiOutlineTeam size={30} color={Colors.accent} /> },
-        { label: 'Equipamentos', value: 18, icon: <AiOutlineTool size={30} color={Colors.accent} /> }, // Mantido (valor '18' é estático por enquanto)
+        // Valor '18' substituído por 'equipamentos.length'
+        { label: 'Equipamentos', value: equipamentos.length, icon: <AiOutlineTool size={30} color={Colors.accent} /> },
     ];
 
     return (
         <DashboardLayout menuItems={menuItems} userRole={userRole}>
-            {/* MODIFICADO (Reaplicando correção anterior): JSX do header */}
             <header style={styles.header}>
                 <h1 style={styles.pageTitle}>Dashboard</h1>
                 
-                {/* Wrapper para o texto de boas-vindas */}
                 <div style={styles.welcomeWrapper}>
                     <p style={styles.welcomeText}>
                         Bem-vindo, <strong style={{ color: Colors.primary }}>{userName} ({userRole})</strong>!
@@ -66,7 +74,7 @@ const DashboardPage: React.FC = () => {
                 ))}
             </div>
 
-            {/* Conteúdo centralizado, porém mais à esquerda */}
+            {/* Conteúdo centralizado */}
             <div style={styles.centralContainer}>
                 {/* Obras Recentes */}
                 <div style={styles.column}>
@@ -101,29 +109,42 @@ const DashboardPage: React.FC = () => {
                         </Card>
                     ))}
                 </div>
+
+                {/* 3. ADICIONADO: Coluna de Equipamentos Recentes */}
+                <div style={styles.column}>
+                    <h2 style={styles.sectionTitle}>Equipamentos Recentes</h2>
+                    {equipamentos.slice(0, 5).map((equipamento) => (
+                        <Card key={equipamento.id} style={styles.listCard}>
+                            <p style={styles.listCardTitle}>{equipamento.equipamento}</p>
+                            <p style={styles.listCardDetail}>Patrimônio: {equipamento.patrimonio}</p>
+                            <p style={styles.listCardDetail}>Marca: {equipamento.marca}</p>
+                            <p style={styles.listCardStock}>Estoque: {equipamento.quantidade}</p>
+                        </Card>
+                    ))}
+                </div>
+
             </div>
         </DashboardLayout>
     );
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-    // MODIFICADO (Reaplicando correção anterior): Estilo do header
+    // Header (igual)
     header: {
         display: 'flex',
-        justifyContent: 'center', // MUDADO de 'space-between'
+        justifyContent: 'center', 
         alignItems: 'center',
         marginBottom: 30,
         width: '100%',
-        position: 'relative', // ADICIONADO
+        position: 'relative', 
     },
     pageTitle: {
         fontSize: 28,
         color: Colors.primary,
         margin: 0,
         fontWeight: 'bold',
-        textAlign: 'center', // Adicionado para garantir
+        textAlign: 'center', 
     },
-    // ADICIONADO (Reaplicando correção anterior): Wrapper do texto
     welcomeWrapper: {
         position: 'absolute',
         right: 0,
@@ -136,12 +157,12 @@ const styles: { [key: string]: React.CSSProperties } = {
         margin: 0,
     },
     
-    // MODIFICADO (Pedido atual): Centralizando os cards
+    // Cards Métricos (igual)
     cardsContainer: {
         display: 'flex',
         gap: 20,
         flexWrap: 'wrap',
-        justifyContent: 'center', // MUDADO de 'flex-start'
+        justifyContent: 'center', 
         marginBottom: 30,
     },
     metricCard: {
@@ -165,6 +186,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: Colors.primary,
         margin: 0,
     },
+
+    // Colunas de Conteúdo (atualizado)
     centralContainer: {
         display: 'flex',
         justifyContent: 'flex-start',
@@ -179,6 +202,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         gap: 20,
         minWidth: 320,
         maxWidth: 400,
+        flex: 1, // Adicionado para melhor distribuição
     },
     listCard: {
         padding: 25,
@@ -201,6 +225,14 @@ const styles: { [key: string]: React.CSSProperties } = {
         margin: 0,
         fontSize: 14,
     },
+    // ADICIONADO: Estilo para o card de estoque
+    listCardStock: {
+        color: Colors.accent, 
+        fontWeight: 'bold',
+        fontSize: 15,
+        margin: 0,
+        marginTop: 5,
+    },
     sectionTitle: {
         color: Colors.primary,
         marginBottom: 10,
@@ -209,7 +241,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         textAlign: 'center',
     },
 
-    // Responsividade
+    // Responsividade (igual)
     '@media(max-width: 900px)': {
         centralContainer: {
             flexDirection: 'column',

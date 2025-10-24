@@ -1,125 +1,168 @@
-// src/components/ui/Table.tsx
-
-import React from 'react';
+import React, { ReactNode } from 'react'; // Import ReactNode
+import styled, { css } from 'styled-components';
 import { Colors } from '../../theme/colors';
 
 // ==========================================================
-// 1. INTERFACES GENÉRICAS
+// INTERFACES (Ajustadas para clareza)
 // ==========================================================
-
-// Define a estrutura de uma coluna, onde T é o tipo de dado (Cliente, Obra, etc.)
-interface Column<T> {
+// A definição da coluna permanece a mesma, mas adicionamos ReactNode explicitamente
+export interface Column<T> { // Exporta para poder usar na página
     header: string;
-    // O accessor pode ser:
-    // a) Uma chave do objeto T (ex: 'nomeOuRazao')
-    // b) Uma função que recebe o item e retorna um componente/valor (ex: os botões de Ações)
-    accessor: keyof T | ((item: T) => React.ReactNode | string); 
-    // Largura opcional para controle de layout (melhor em CSS, mas útil aqui)
-    width?: string; 
+    accessor: keyof T | ((item: T) => ReactNode); // Permite string, number, JSX, etc.
+    width?: string;
 }
 
 interface TableProps<T> {
-    data: T[]; // Array de dados da API (genérico)
-    columns: Column<T>[]; // Definição das colunas
-    // Estilos opcionais para o container da tabela
-    style?: React.CSSProperties; 
+    data: T[];
+    columns: Column<T>[];
+    className?: string; // Para estilização externa via styled(Table)
+    // 'style' prop removida para encorajar controle via 'className' ou container pai
 }
 
 // ==========================================================
-// 2. COMPONENTE PRINCIPAL
+// STYLED COMPONENTS
 // ==========================================================
 
-// O componente usa generics <T> para tipar os dados
-const Table = <T extends {} > ({ data, columns, style }: TableProps<T>): JSX.Element => {
-    
-    // Função utilitária para obter o valor formatado da célula
-    const getCellValue = (item: T, accessor: Column<T>['accessor']): React.ReactNode => {
+const TableWrapper = styled.div`
+  overflow-x: auto; /* Permite scroll horizontal */
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid ${Colors.secondary + '40'}; /* Borda mais sutil com transparência */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Sombra mais sutil */
+  background-color: ${Colors.white};
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse; /* Remove espaços entre células */
+  text-align: left;
+  /* Garante uma largura mínima, mas permite encolher se necessário */
+  /* O wrapper cuidará do scroll */
+  min-width: 600px; /* Reduzido um pouco */
+`;
+
+const TableHeader = styled.thead`
+  /* Estilos específicos do thead, se houver */
+`;
+
+const HeaderRow = styled.tr`
+  background-color: ${Colors.primary};
+  color: ${Colors.white};
+  border-bottom: 2px solid ${Colors.accent}; /* Linha de destaque */
+`;
+
+// Passa a prop 'width' opcional para o TH
+const HeaderCell = styled.th<{ width?: string }>`
+  padding: 12px 15px;
+  font-size: 0.9em; // Usa em para ser relativo
+  font-weight: 600; // Um pouco mais forte
+  text-transform: uppercase; // Opcional: deixar cabeçalhos em maiúsculo
+  letter-spacing: 0.5px; // Opcional: leve espaçamento
+  width: ${props => props.width || 'auto'}; // Aplica largura se definida
+`;
+
+const TableBody = styled.tbody`
+  /* Estilos específicos do tbody, se houver */
+`;
+
+// Adiciona efeito hover à linha
+const BodyRow = styled.tr`
+  border-bottom: 1px solid ${Colors.background};
+  transition: background-color 0.15s ease-in-out;
+
+  &:last-child {
+    border-bottom: none; /* Remove borda da última linha */
+  }
+
+  &:hover {
+    background-color: ${Colors.background + '80'}; /* Fundo levemente acinzentado no hover */
+  }
+`;
+
+const BodyCell = styled.td`
+  padding: 10px 15px; /* Padding ligeiramente menor */
+  color: ${Colors.text};
+  font-size: 0.9em;
+  vertical-align: middle; /* Alinha conteúdo verticalmente */
+
+  /* Estilo para links dentro da célula (exemplo) */
+  a {
+    color: ${Colors.accent};
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* Estilo para botões dentro da célula (exemplo de espaçamento) */
+  div > button:not(:last-child) {
+     margin-right: 8px;
+  }
+`;
+
+const EmptyMessage = styled.p`
+  text-align: center;
+  padding: 30px 20px; /* Mais padding */
+  color: ${Colors.secondary};
+  font-style: italic;
+`;
+
+// ==========================================================
+// COMPONENTE PRINCIPAL (Usando Styled Components)
+// ==========================================================
+
+// Ajuste na definição do tipo genérico para melhor inferência e constraints
+const Table = <T extends Record<string, any>>({ data, columns, className }: TableProps<T>): JSX.Element => {
+
+    const getCellValue = (item: T, accessor: Column<T>['accessor']): ReactNode => {
         if (typeof accessor === 'function') {
-            // Se for uma função (para Ações ou formatação), executa e retorna o JSX
             return accessor(item);
         }
-        // Se for uma chave, retorna o valor direto (com checagem de null/undefined)
-        return String(item[accessor as keyof T] ?? ''); 
+        // Tratamento mais seguro para acesso a propriedades
+        const value = item[accessor as keyof T];
+        // Retorna string vazia se for null ou undefined
+        return value === null || value === undefined ? '' : String(value);
     };
 
     if (!data || data.length === 0) {
-        // Retorna uma mensagem amigável se não houver dados
-        return <p style={styles.empty}>Nenhum dado para exibir.</p>;
+        // Usa o componente EmptyMessage estilizado
+        return <EmptyMessage>Nenhum dado para exibir.</EmptyMessage>;
     }
 
     return (
-        <div style={styles.tableWrapper}>
-            <table style={{ ...styles.table, ...style }}>
-                <thead>
-                    <tr style={styles.headerRow}>
+        // Usa TableWrapper, passando className para estilização externa
+        <TableWrapper className={className}>
+            {/* Usa StyledTable */}
+            <StyledTable>
+                {/* Usa TableHeader */}
+                <TableHeader>
+                    {/* Usa HeaderRow */}
+                    <HeaderRow>
                         {columns.map((column, idx) => (
-                            <th 
-                                key={idx} 
-                                style={{ ...styles.headerCell, width: column.width }}
-                            >
+                            // Usa HeaderCell, passando width
+                            <HeaderCell key={idx} width={column.width}>
                                 {column.header}
-                            </th>
+                            </HeaderCell>
                         ))}
-                    </tr>
-                </thead>
-                <tbody>
+                    </HeaderRow>
+                </TableHeader>
+                {/* Usa TableBody */}
+                <TableBody>
                     {data.map((item, rowIndex) => (
-                        <tr key={rowIndex} style={styles.bodyRow}>
+                        // Usa BodyRow
+                        <BodyRow key={rowIndex}>
                             {columns.map((column, colIndex) => (
-                                <td key={colIndex} style={styles.bodyCell}>
+                                // Usa BodyCell
+                                <BodyCell key={colIndex}>
                                     {getCellValue(item, column.accessor)}
-                                </td>
+                                </BodyCell>
                             ))}
-                        </tr>
+                        </BodyRow>
                     ))}
-                </tbody>
-            </table>
-        </div>
+                </TableBody>
+            </StyledTable>
+        </TableWrapper>
     );
-};
-
-// ==========================================================
-// 3. ESTILOS (Alinhados ao Tema INENG)
-// ==========================================================
-
-const styles: { [key: string]: React.CSSProperties } = {
-    tableWrapper: {
-        overflowX: 'auto', // Permite scroll horizontal em tabelas largas
-        width: '100%',
-        borderRadius: '8px',
-        border: `1px solid ${Colors.secondary}`,
-        boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-        backgroundColor: Colors.white,
-    },
-    table: {
-        width: '100%',
-        borderCollapse: 'collapse',
-        textAlign: 'left',
-        minWidth: '700px', // Garante que a tabela seja legível
-    },
-    headerRow: {
-        backgroundColor: Colors.primary,
-        color: Colors.white,
-    },
-    headerCell: {
-        padding: '12px 15px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-    },
-    bodyRow: {
-        borderBottom: `1px solid ${Colors.background}`,
-    },
-    bodyCell: {
-        padding: '12px 15px',
-        color: Colors.text,
-        fontSize: '14px',
-        borderRight: 'none', // Remove bordas verticais duplicadas
-    },
-    empty: {
-        textAlign: 'center',
-        padding: '20px',
-        color: Colors.secondary,
-    }
 };
 
 export default Table;

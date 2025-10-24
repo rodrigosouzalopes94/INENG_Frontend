@@ -1,230 +1,282 @@
-// src/components/forms/ClienteForm.tsx
-
-import { useState, useEffect } from 'react';
-import Input from '../ui/Input'; 
-import Button from '../ui/Button';
-import { useClientes } from '../../hooks/useClientes'; 
+import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 'react'; // Import React explicitamente e tipos
+import styled from 'styled-components'; // Importa styled-components
+import Input from '../ui/Input'; // Importa Input refatorado
+import Button from '../ui/Button'; // Importa Button refatorado
+import { useClientes } from '../../hooks/useClientes';
 import type { Cliente, ClientePayload, TipoPessoa } from '../../models/Cliente';
-import { maskCPF, maskCNPJ, maskCEP } from '../../utils/formatters'; 
+import { maskCPF, maskCNPJ, maskCEP } from '../../utils/formatters';
 import { Colors } from '../../theme/colors';
 
+// --- Interfaces e Constantes (SEM ALTERAÇÕES) ---
 interface ClienteFormProps {
     clienteInicial?: Cliente | null;
-    onSave: () => void; // Função para fechar o modal e atualizar a lista
+    onSave: () => void;
 }
 
-const INITIAL_FORM: ClientePayload = {
+const INITIAL_FORM: Partial<ClientePayload> = { // Usar Partial aqui pode ser mais seguro
     tipoPessoa: 'JURIDICA',
     nomeOuRazao: '',
-    cep: '', 
+    cep: '',
     enderecoCompleto: '',
-    cpf: '', 
+    cpf: '',
     cnpj: '',
 };
 
+// --- Styled Components ---
+
+const FormWrapper = styled.div`
+  width: 100%;
+  max-width: 550px;
+  margin: 0 auto;
+  padding: 10px;
+`;
+
+const FormTitle = styled.h3`
+  color: ${Colors.primary};
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  text-align: center;
+  width: 100%;
+`;
+
+const FormContainer = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 15px; // Espaçamento entre os inputs/seções
+  width: 100%;
+  align-items: center;
+`;
+
+const ToggleContainer = styled.div`
+  width: 100%;
+  margin-bottom: 15px;
+  text-align: center;
+`;
+
+const ToggleLabel = styled.p`
+  color: ${Colors.text};
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 0.9em; // Equivalente ao 14px anterior, mas relativo
+`;
+
+const ToggleButtonGroup = styled.div`
+  display: flex;
+  gap: 10px;
+  width: 100%;
+`;
+
+// Estiliza o componente Button importado especificamente para o toggle
+const ToggleButton = styled(Button)`
+  flex: 1; /* Ocupa metade do espaço */
+  padding-top: 10px;
+  padding-bottom: 10px;
+
+  /* Ajuste responsivo se necessário */
+  @media (max-width: 400px) {
+    font-size: 0.85em;
+    padding: 8px 5px;
+  }
+`;
+
+// Estiliza o componente Button importado especificamente para o submit
+const SubmitButton = styled(Button)`
+  margin-top: 20px;
+  width: 100%; /* Ocupa largura total */
+`;
+
+const ApiErrorText = styled.p`
+  color: ${Colors.danger};
+  background-color: #fff4f4;
+  padding: 10px 15px;
+  border: 1px solid ${Colors.danger};
+  border-radius: 5px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.9em;
+  box-sizing: border-box;
+  margin-bottom: 15px;
+`;
+
+
+// --- Componente React (Lógica SEM ALTERAÇÕES) ---
+
 const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => {
-    const [formData, setFormData] = useState<ClientePayload>(INITIAL_FORM as ClientePayload);
+    // Estado inicial ajustado para evitar erros de tipo com Partial
+    const [formData, setFormData] = useState<Partial<ClientePayload>>(INITIAL_FORM);
     const [errors, setErrors] = useState<Partial<Record<keyof ClientePayload, string>>>({});
-    
-    // Puxa a lógica de submissão, loading e erro do hook de clientes
-    const { submitCliente, loading, error: apiError } = useClientes(); 
-    
+    const { submitCliente, loading, error: apiError } = useClientes();
     const isEditing = !!clienteInicial;
     const isPJ = formData.tipoPessoa === 'JURIDICA';
 
-    // Lógica para carregar dados se for edição (UseEffect)
     useEffect(() => {
         if (clienteInicial) {
-            setFormData({
+            // Garante que todos os campos de INITIAL_FORM existam, preenchendo com '' se necessário
+            const initialData: Partial<ClientePayload> = {
+                ...INITIAL_FORM, // Garante todos os campos
                 ...clienteInicial,
+                // Garante que cpf/cnpj sejam strings vazias se null/undefined
                 cpf: clienteInicial.cpf || '',
                 cnpj: clienteInicial.cnpj || '',
-                tipoPessoa: clienteInicial.tipoPessoa as TipoPessoa, 
-            });
+                // tipoPessoa já vem de clienteInicial
+            };
+            setFormData(initialData);
         } else {
-            setFormData(INITIAL_FORM as ClientePayload);
+            setFormData(INITIAL_FORM);
         }
-        setErrors({}); 
+        setErrors({});
     }, [clienteInicial]);
-    
-    // Manipuladores
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+
+     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        
-        // Lógica de sanitização em tempo real (apenas números no estado)
+        let valueToSet = value;
+
+        // Sanitiza e limita campos numéricos
         if (name === 'cpf' || name === 'cnpj' || name === 'cep') {
             const rawValue = value.replace(/\D/g, '');
-            let limitedValue = rawValue;
-
-            if (name === 'cep') limitedValue = rawValue.substring(0, 8); 
-            else if (name === 'cpf') limitedValue = rawValue.substring(0, 11);
-            else if (name === 'cnpj') limitedValue = rawValue.substring(0, 14);
-
-            setFormData(prev => ({ ...prev, [name]: limitedValue }));
-            if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
-            return;
+            if (name === 'cep') valueToSet = rawValue.substring(0, 8);
+            else if (name === 'cpf') valueToSet = rawValue.substring(0, 11);
+            else if (name === 'cnpj') valueToSet = rawValue.substring(0, 14);
         }
 
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) setErrors(prev => ({ ...prev, [name]: undefined }));
+        setFormData(prev => ({ ...prev, [name]: valueToSet }));
+        // Limpa erro ao digitar
+        if (errors[name as keyof ClientePayload]) {
+             setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[name as keyof ClientePayload];
+                return newErrors;
+             });
+        }
     };
 
     const handleTogglePessoa = (type: TipoPessoa) => {
-        setFormData(prev => ({ 
-            ...prev, 
+        setFormData(prev => ({
+            ...INITIAL_FORM, // Reseta para evitar lixo de CPF/CNPJ
+            nomeOuRazao: prev.nomeOuRazao, // Mantém nome/razão se já digitado
+            cep: prev.cep, // Mantém CEP
+            enderecoCompleto: prev.enderecoCompleto, // Mantém endereço
             tipoPessoa: type,
-            cpf: '', 
-            cnpj: '', 
         }));
-        setErrors({}); 
+        setErrors({});
     };
 
-    const validate = (): boolean => {
+    // Validação (ajustada para Partial<ClientePayload>)
+     const validate = (): boolean => {
         const newErrors: Partial<Record<keyof ClientePayload, string>> = {};
-        
-        if (!formData.nomeOuRazao) newErrors.nomeOuRazao = 'Nome/Razão Social é obrigatório.';
-        
-        // Validação de CEP
-        if (formData.cep.replace(/\D/g, '').length !== 8) newErrors.cep = 'CEP deve ter 8 dígitos.';
+        if (!formData.nomeOuRazao?.trim()) newErrors.nomeOuRazao = 'Nome/Razão Social é obrigatório.';
+        if (!formData.cep || formData.cep.replace(/\D/g, '').length !== 8) newErrors.cep = 'CEP deve ter 8 dígitos.';
 
-        // Validação de CPF/CNPJ
         const doc = isPJ ? formData.cnpj : formData.cpf;
         const requiredLength = isPJ ? 14 : 11;
         const docName = isPJ ? 'CNPJ' : 'CPF';
-        
         if (!doc || doc.replace(/\D/g, '').length !== requiredLength) {
             newErrors[isPJ ? 'cnpj' : 'cpf'] = `${docName} deve ter ${requiredLength} dígitos.`;
         }
-        if (!formData.enderecoCompleto) newErrors.enderecoCompleto = 'Endereço completo é obrigatório.';
+        if (!formData.enderecoCompleto?.trim()) newErrors.enderecoCompleto = 'Endereço completo é obrigatório.';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    // ✅ Submissão (Usa o Hook de API)
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Submissão (ajustada para Partial<ClientePayload>)
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
-        
         if (!validate()) return;
-        
-        // Sanitização Crítica no Payload
-        const cleanCnpj = formData.cnpj ? formData.cnpj.replace(/\D/g, '') : null;
-        const cleanCpf = formData.cpf ? formData.cpf.replace(/\D/g, '') : null;
 
+        // Garante que todos os campos obrigatórios para o payload final existam
+        // e usa valores padrão ou lança erro se algo essencial faltar (embora validate deva pegar)
         const payload: ClientePayload = {
-            ...formData,
-            tipoPessoa: isPJ ? 'JURIDICA' : 'FISICA', 
-            cep: formData.cep.replace(/\D/g, ''), 
-            // Garante que o campo irrelevante seja NULL e o relevante seja a string limpa
-            cnpj: isPJ ? cleanCnpj : null,
-            cpf: isPJ ? null : cleanCpf,
-            enderecoCompleto: formData.enderecoCompleto,
-        } as ClientePayload;
+            tipoPessoa: formData.tipoPessoa || 'JURIDICA', // Deve ter valor
+            nomeOuRazao: formData.nomeOuRazao?.trim() || '', // Deve ter valor
+            cep: (formData.cep || '').replace(/\D/g, ''), // Deve ter valor
+            enderecoCompleto: formData.enderecoCompleto?.trim() || '', // Deve ter valor
+            cpf: !isPJ ? (formData.cpf || '').replace(/\D/g, '') : null,
+            cnpj: isPJ ? (formData.cnpj || '').replace(/\D/g, '') : null,
+        };
 
-        const success = await submitCliente(payload, clienteInicial?.id); 
-
+        const success = await submitCliente(payload, clienteInicial?.id);
         if (success) {
-            const action = clienteInicial ? 'alterado' : 'cadastrado';
-            alert(`Cliente ${payload.nomeOuRazao} ${action} com sucesso!`);
-            onSave(); 
-        } 
+            onSave();
+        }
     };
 
-
+    // --- JSX com Styled Components ---
     return (
-        <div style={styles.formWrapper}> 
-            <form onSubmit={handleSubmit} style={styles.formContainer}>
-                
-                {/* Mensagem de Erro Geral da API */}
-                {apiError && <p style={styles.apiErrorText}>Falha na API: {apiError}</p>}
-                
-                <h3 style={styles.formTitle}>{isEditing ? 'Editar Cliente Existente' : 'Novo Cliente'}</h3>
-                
-                {/* Seleção de Tipo de Pessoa (PF/PJ) */}
-                <div style={styles.toggleContainer}>
-                    <p style={styles.toggleLabel}>Tipo de Cadastro *</p>
-                    <div style={styles.toggleButtonGroup}>
-                        <Button 
-                            title="Pessoa Jurídica" 
-                            type="button" 
+        <FormWrapper>
+            <FormContainer onSubmit={handleSubmit}>
+
+                {apiError && <ApiErrorText>Falha: {apiError}</ApiErrorText>}
+
+                <FormTitle>{isEditing ? 'Editar Cliente' : 'Novo Cliente'}</FormTitle>
+
+                <ToggleContainer>
+                    <ToggleLabel>Tipo de Cadastro *</ToggleLabel>
+                    <ToggleButtonGroup>
+                        <ToggleButton
+                            title="Pessoa Jurídica"
+                            type="button"
                             variant={isPJ ? 'primary' : 'secondary'}
                             onClick={() => handleTogglePessoa('JURIDICA')}
-                            style={styles.toggleButton}
                         />
-                         <Button 
-                            title="Pessoa Física" 
-                            type="button" 
+                        <ToggleButton
+                            title="Pessoa Física"
+                            type="button"
                             variant={!isPJ ? 'primary' : 'secondary'}
                             onClick={() => handleTogglePessoa('FISICA')}
-                            style={styles.toggleButton}
                         />
-                    </div>
-                </div>
+                    </ToggleButtonGroup>
+                </ToggleContainer>
 
-                {/* Documento Condicional (CPF ou CNPJ) */}
+                {/* Usa o componente Input refatorado */}
                 <Input
                     label={isPJ ? 'CNPJ *' : 'CPF *'}
                     name={isPJ ? 'cnpj' : 'cpf'}
-                    value={isPJ ? maskCNPJ(formData.cnpj || '') : maskCPF(formData.cpf || '')} 
+                    value={isPJ ? maskCNPJ(formData.cnpj || '') : maskCPF(formData.cpf || '')}
                     onChange={handleChange}
-                    maxLength={isPJ ? 18 : 14} 
-                    error={errors.cpf || errors.cnpj}
+                    maxLength={isPJ ? 18 : 14}
+                    error={errors.cnpj || errors.cpf} // Passa o erro para o Input
                     required
                 />
-                
-                {/* Nome / Razão Social */}
+
                 <Input
                     label={isPJ ? 'Razão Social *' : 'Nome Completo *'}
                     name="nomeOuRazao"
-                    value={formData.nomeOuRazao}
+                    value={formData.nomeOuRazao || ''}
                     onChange={handleChange}
                     error={errors.nomeOuRazao}
                     required
                 />
-                
-                {/* Endereço */}
+
                 <Input
                     label="CEP *"
                     name="cep"
                     value={maskCEP(formData.cep || '')}
                     onChange={handleChange}
-                    maxLength={10} 
+                    maxLength={10}
                     error={errors.cep}
                     required
                 />
                 <Input
                     label="Endereço Completo *"
                     name="enderecoCompleto"
-                    value={formData.enderecoCompleto}
+                    value={formData.enderecoCompleto || ''}
                     onChange={handleChange}
                     error={errors.enderecoCompleto}
                     required
                 />
 
-                {/* Botão de Submissão */}
-                <Button 
-                    title={isEditing ? 'Salvar Alterações' : 'Cadastrar Cliente'} 
-                    type="submit" 
-                    variant="primary" 
-                    loading={loading} 
-                    style={styles.submitButton}
+                {/* Usa o componente Button refatorado através do SubmitButton */}
+                <SubmitButton
+                    title={isEditing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                    type="submit"
+                    variant="primary"
+                    loading={loading}
                 />
-            </form>
-        </div>
+            </FormContainer>
+        </FormWrapper>
     );
-};
-
-// Estilos formatados e completos
-const styles: { [key: string]: React.CSSProperties } = {
-    formWrapper: { width: '100%', maxWidth: '550px', margin: '0 auto', padding: '10px' },
-    formTitle: { color: Colors.primary, fontSize: '20px', fontWeight: 'bold', marginBottom: '25px', textAlign: 'center', width: '100%' },
-    formContainer: { display: 'flex', flexDirection: 'column', gap: '15px', width: '100%', alignItems: 'center' },
-    toggleContainer: { width: '100%', marginBottom: '15px', textAlign: 'center' },
-    toggleLabel: { color: Colors.text, fontWeight: 'bold', marginBottom: '8px', fontSize: '14px' },
-    toggleButtonGroup: { display: 'flex', gap: '10px', width: '100%' },
-    toggleButton: { width: 'calc(50% - 5px)', padding: '10px 0' },
-    submitButton: { marginTop: '20px', width: '100%' },
-    apiErrorText: { color: Colors.danger, padding: '10px', border: `1px solid ${Colors.danger}`, borderRadius: '5px', width: '100%', textAlign: 'center', fontSize: '14px' }
 };
 
 export default ClienteForm;

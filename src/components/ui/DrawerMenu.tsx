@@ -1,10 +1,12 @@
 import React from 'react';
-import styled, { css } from 'styled-components'; // Importa styled e css
+import styled, { css } from 'styled-components';
 import { Colors } from '../../theme/colors';
-import AppLogo from '../common/AppLogo'; // Mantém import da Logo
+import AppLogo from '../common/AppLogo';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthContext } from '../../context/AuthContext'; // 1. Importa o AuthContext
+import { AiOutlineLogout } from 'react-icons/ai'; // Exemplo: Ícone para logout
 
-// --- Interfaces (SEM ALTERAÇÕES) ---
+// --- Interfaces ---
 interface MenuItem {
   label: string;
   path: string;
@@ -18,31 +20,32 @@ interface DrawerMenuProps {
 
 // --- Styled Components ---
 
-// Container principal do menu lateral (aside)
 const SidebarContainer = styled.aside`
   width: 250px;
   padding: 20px;
   background-color: ${Colors.primary};
   color: ${Colors.white};
   height: 100vh;
-  position: fixed; // ou 'sticky' se preferir, dependendo do layout pai
+  position: fixed;
   top: 0;
   left: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: column; // Conteúdo principal empilhado
   box-shadow: 2px 0 6px rgba(0, 0, 0, 0.15);
-  box-sizing: border-box; // Inclui padding na largura
+  box-sizing: border-box;
 
-  /* Adicionar responsividade se necessário (ex: esconder em telas pequenas) */
+  /* Responsividade (Exemplo) */
   @media (max-width: 768px) {
-    /* Exemplo: Esconder o menu e depender de um botão de toggle (requer lógica adicional) */
-    /* display: none; */
-    /* Ou reduzir a largura */
-    /* width: 200px; */
+    /* width: 60px; // Poderia virar um menu só com ícones */
+    /* Ou esconder completamente: display: none; */
   }
 `;
 
-// Container da navegação (nav)
+// Wrapper para Logo e Navegação (permite empurrar logout para baixo)
+const MainContent = styled.div`
+    flex-grow: 1; // Ocupa todo o espaço vertical disponível
+`;
+
 const NavMenu = styled.nav`
   margin-top: 40px;
   display: flex;
@@ -50,67 +53,107 @@ const NavMenu = styled.nav`
   gap: 10px;
 `;
 
-// Item de navegação clicável (div)
-// Recebe uma prop 'isActive' para estilização condicional
-const NavLink = styled.div<{ isActive: boolean }>`
+// NavLink (como estava antes)
+const NavLink = styled.div<{ $isActive: boolean }>` // Usa transient prop
   padding: 10px 15px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
-  transition: background-color 0.2s, color 0.2s; // Transição suave
-  user-select: none; // Evita seleção de texto
+  transition: background-color 0.2s, color 0.2s;
+  user-select: none;
+  display: flex; // Para alinhar ícone (se adicionar)
+  align-items: center; // Para alinhar ícone (se adicionar)
+  gap: 10px; // Espaço para ícone (se adicionar)
 
-  /* Estilo base (não ativo) */
   background-color: transparent;
-  color: ${Colors.white}; // Cor padrão do texto
+  color: ${Colors.white};
 
-  /* Estilo quando ATIVO */
-  ${({ isActive }) =>
-    isActive &&
+  ${({ $isActive }) =>
+    $isActive &&
     css`
       background-color: ${Colors.accent};
-      color: ${Colors.white}; // Cor do texto ativo (pode ser a mesma ou diferente)
+      color: ${Colors.white};
     `}
 
-  /* Efeito Hover (apenas se NÃO estiver ativo) */
   &:hover {
-    ${({ isActive }) =>
-      !isActive &&
+    ${({ $isActive }) =>
+      !$isActive &&
       css`
-        background-color: rgba(255, 255, 255, 0.1); // Leve destaque no hover
+        background-color: rgba(255, 255, 255, 0.1);
       `}
   }
 `;
+
+// 2. Styled Component para o Botão Logout
+const LogoutButton = styled.button`
+  background-color: rgba(255, 255, 255, 0.1); // Fundo sutil
+  color: ${Colors.white};
+  border: none;
+  padding: 12px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  text-align: left; // Alinha texto à esquerda
+  width: 100%; // Ocupa largura
+  margin-top: auto; // Empurra para o final do flex container (SidebarContainer)
+  display: flex;
+  align-items: center;
+  gap: 10px; // Espaço entre ícone e texto
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.2); // Escurece um pouco no hover
+  }
+
+  svg { // Estilo para o ícone
+    font-size: 1.2em; // Tamanho do ícone
+  }
+`;
+
 
 // --- Componente React ---
 
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ items, userRole }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuthContext(); // 3. Pega a função logout
+
+  // 4. Handler para o Logout
+  const handleLogout = () => {
+    logout(); // Limpa o estado/token de autenticação
+    navigate('/'); // Redireciona para a página de login
+  };
 
   return (
-    // Usa o SidebarContainer estilizado
     <SidebarContainer>
-      <AppLogo /> {/* Renderiza a logo */}
-      {/* Usa o NavMenu estilizado */}
-      <NavMenu>
-        {items
-          // Lógica de filtro e map (SEM ALTERAÇÕES)
-          .filter(item => !item.allowedRoles || item.allowedRoles.includes(userRole))
-          .map((item, idx) => {
-            const isActive = location.pathname === item.path;
-            return (
-              // Usa o NavLink estilizado, passando a prop 'isActive'
-              <NavLink
-                key={idx}
-                isActive={isActive} // Passa o estado ativo como prop
-                onClick={() => navigate(item.path)} // Lógica de navegação
-              >
-                {item.label}
-              </NavLink>
-            );
-          })}
-      </NavMenu>
+       {/* Conteúdo Principal (Logo e Navegação) */}
+      <MainContent>
+            <AppLogo />
+            <NavMenu>
+                {items
+                .filter(item => !item.allowedRoles || item.allowedRoles.includes(userRole))
+                .map((item, idx) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                    // Usa transient prop '$isActive'
+                    <NavLink
+                        key={idx}
+                        $isActive={isActive} // Passa como transient prop
+                        onClick={() => navigate(item.path)}
+                    >
+                        {/* Adicionar ícones aqui se quiser */}
+                        {item.label}
+                    </NavLink>
+                    );
+                })}
+            </NavMenu>
+      </MainContent>
+
+      {/* 5. Botão de Logout Adicionado */}
+      <LogoutButton onClick={handleLogout}>
+            <AiOutlineLogout /> {/* Ícone */}
+            Sair
+      </LogoutButton>
     </SidebarContainer>
   );
 };

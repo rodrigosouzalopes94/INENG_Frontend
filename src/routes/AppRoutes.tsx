@@ -15,12 +15,14 @@ import DashboardPage from '../pages/DashboardPage';
 import ProtectedRoute from './ProtectedRoute';
 import ClientPage from '../pages/ClientPage';
 import ObraPage from '../pages/ObraPage';
-// CORRIGIDO: Importação da nova tela
 import EquipamentoPage from '../pages/EquipamentoPage'; // Trocado de Screen para Page
+import FuncionarioPage from '../pages/FuncionarioPage'; // Importado
 
-// CORRIGIDO: Corrigido o erro de digitação 'UnanthorizedPage'
+// Telas de Erro
+// CORRIGIDO: Corrigido o erro de digitação 'UnanthorizedPage' (assumindo que o nome do arquivo é UnauthorizedPage.tsx)
 import UnauthorizedPage from '../pages/UnanthorizedPage';
 import NotFoundPage from '../pages/NotFoundPage';
+
 
 const AppRoutes: React.FC = () => {
     return (
@@ -31,6 +33,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/register-user" element={<UserRegisterPage />} />
                 <Route path="/request-reset" element={<RequestResetPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                
 
                 {/* ADICIONADO: ROTA PÚBLICA DE ERRO (ACESSO NEGADO) */}
                 <Route path="/acesso-negado" element={<UnauthorizedPage />} />
@@ -63,13 +66,22 @@ const AppRoutes: React.FC = () => {
                     }
                 />
 
-                {/* ADICIONADO: Rota protegida para Equipamentos */}
+                {/* Rota protegida para Equipamentos */}
                 <Route
                     path="/equipamentos"
                     element={
                         <ProtectedRoute>
-                            {/* CORRIGIDO: Trocado de Screen para Page */}
                             <EquipamentoPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* ✅ ADICIONADO: Rota protegida para Funcionários */}
+                <Route
+                    path="/funcionarios"
+                    element={
+                        <ProtectedRoute>
+                            <FuncionarioPage />
                         </ProtectedRoute>
                     }
                 />

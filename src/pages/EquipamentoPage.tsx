@@ -26,7 +26,7 @@ const menuItems = [
     { label: 'Clientes', path: '/clientes' },
     { label: 'Obras', path: '/obras' },
     { label: 'Equipamentos', path: '/equipamentos' },
-    { label: 'Funcionários', path: '/obras'},
+    { label: 'Funcionários', path: '/funcionarios'},
     // { label: 'Funcionários', path: '/funcionarios', allowedRoles: ['GESTOR', 'ADMIN'] as const },
 ];
 

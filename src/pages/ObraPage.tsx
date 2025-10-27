@@ -124,6 +124,7 @@ const CardContent = styled.div`
   flex-direction: column;
   gap: 6px; /* Espaço entre textos */
   flex-grow: 1; /* Empurra ações para baixo */
+  /* Padding já vem do CardComponent base, não precisa aqui a menos que queira sobrescrever */
 `;
 
 
@@ -233,9 +234,10 @@ const DialogCloseButton = styled(DialogClose)`
 // --- Componente React ---
 
 const ObraPage: React.FC = () => { // Renomeado para ObraPage
-    // --- Hooks e State (SEM ALTERAÇÕES) ---
+    // --- Hooks e State ---
     const { clientes, loading: loadingClientes, error: errorClientes } = useClientes();
-    const { obras, loading: loadingObras, fetchObras } = useObrasList();
+    // Renomeia 'error' para 'obrasError' para evitar colisão
+    const { obras, loading: loadingObras, error: obrasError, fetchObras } = useObrasList();
     const [selectedObra, setSelectedObra] = useState<Obra | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -251,10 +253,9 @@ const ObraPage: React.FC = () => { // Renomeado para ObraPage
     const handleDeleteObra = async (id: number | string) => { // Aceita number ou string
         if (window.confirm('Tem certeza que deseja excluir esta obra? Esta ação não pode ser desfeita.')) {
             try {
-                // Converte ID para número se necessário (depende da API)
-                await ObraService.deleteObra(Number(id));
+                await ObraService.deleteObra(Number(id)); // Converte para número
                 await fetchObras();
-            } catch (error) {
+            } catch (error) { // 'error' local do catch
                 console.error("Erro ao excluir obra:", error);
                 alert("Não foi possível excluir a obra. Tente novamente.");
             }
@@ -268,13 +269,21 @@ const ObraPage: React.FC = () => { // Renomeado para ObraPage
         setDialogOpen(false);
     };
 
+    // Determina a mensagem de erro a ser exibida
+    let displayError = null;
+    if (errorClientes) {
+        displayError = errorClientes instanceof Error ? errorClientes.message : String(errorClientes);
+    } else if (obrasError && !loadingObras) { // Usa obrasError
+        displayError = obrasError instanceof Error ? obrasError.message : String(obrasError);
+    }
+
+
     // --- JSX com Styled Components ---
     return (
         <DashboardLayout menuItems={menuItems} userRole="GESTOR"> {/* Assume GESTOR */}
             <Header>
                 <PageTitle>Obras</PageTitle>
                 <ButtonWrapper>
-                    {/* Usa AddButton estilizado */}
                     <AddButton variant="accent" onClick={handleAddObra}>
                         + Nova Obra
                     </AddButton>
@@ -282,27 +291,29 @@ const ObraPage: React.FC = () => { // Renomeado para ObraPage
             </Header>
 
             {(loadingObras || loadingClientes) && <LoadingMessage>Carregando...</LoadingMessage>}
-            {/* Mostra erro de clientes ou de obras */}
-            {(errorClientes || (error && !loadingObras)) && (
-                 <ErrorMessage>{errorClientes || error || 'Erro ao carregar dados.'}</ErrorMessage>
+
+            {/* Usa displayError */}
+            {displayError && (
+                 <ErrorMessage>{displayError}</ErrorMessage>
             )}
 
 
-            {/* Renderiza condicionalmente o container ou a mensagem de vazio */}
-            {!loadingObras && !error && obras.length === 0 && !errorClientes && (
+            {/* Usa 'obrasError' nas condicionais */}
+            {!loadingObras && !obrasError && obras.length === 0 && !errorClientes && (
                 <EmptyListMessage>Nenhuma obra cadastrada.</EmptyListMessage>
             )}
 
-            {!loadingObras && !error && obras.length > 0 && (
+            {!loadingObras && !obrasError && obras.length > 0 && ( // Usa !obrasError
                 <CardsContainer>
                     {obras.map((obra) => (
                         // Usa ObraCard estilizado, passando highlight
                         <ObraCard
                             key={obra.id}
                             highlight={obra.tipoObra === 'CONSTRUCAO' ? 'primary' : 'accent'}
-                            paddingSize="small" // Exemplo: padding menor para ObraCard
+                            paddingSize="medium" // Usa o padding padrão do Card base
                         >
-                            <CardContent> {/* Agrupa conteúdo textual */}
+                            {/* O padding agora é aplicado pelo Card base, então CardContent não precisa */}
+                            <CardContent>
                                 <CardLabel>
                                     {obra.tipoObra === 'CONSTRUCAO' ? 'Construção' : 'Reforma'}
                                 </CardLabel>
@@ -311,7 +322,7 @@ const ObraPage: React.FC = () => { // Renomeado para ObraPage
                                 <CardDetail>Endereço: {obra.enderecoCompleto || 'N/A'}</CardDetail>
                             </CardContent>
 
-                            <CardActions> {/* Agrupa botões de ação */}
+                            <CardActions>
                                 <EditButton variant="accent" onClick={() => handleEditObra(obra)}>
                                     Editar
                                 </EditButton>
@@ -335,10 +346,11 @@ const ObraPage: React.FC = () => { // Renomeado para ObraPage
                         {/* Assume que ObraForm foi refatorado */}
                         <ObraForm
                             obra={selectedObra ?? undefined} // Passa undefined se null
-                            clientes={clientes || []} // Passa array vazio se clientes for undefined
+                            clientes={clientes || []} // Passa array vazio se clientes for undefined/null
                             onSaved={handleSaved}
                             onClose={handleClose}
                         />
+                        {/* O 'X' agora vem do botão estilizado */}
                         <DialogCloseButton aria-label="Fechar">×</DialogCloseButton>
                     </DialogContent>
                 </DialogPortal>
@@ -347,4 +359,4 @@ const ObraPage: React.FC = () => { // Renomeado para ObraPage
     );
 };
 
-export default ObraPage; 
+export default ObraPage;

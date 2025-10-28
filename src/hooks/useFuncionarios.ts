@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios'; // Importa axios para checagem de erro
-import { FuncionarioService } from '../api/FuncionarioService'; // Service de Funcionário
+import { FuncionarioService } from '../api/FuncionarioService'; // Service de Funcionário (já refatorado)
 import type { Funcionario, FuncionarioPayload } from '../models/Funcionario'; // Modelos de Funcionário
 import { useAuthContext } from '../context/AuthContext'; // Para logout em caso de 401
 
@@ -15,6 +15,7 @@ export const useFuncionarios = () => {
 
     /**
      * [GET] Busca a lista de funcionários.
+     * (Mantido como no seu código)
      */
     const fetchFuncionarios = useCallback(async () => {
         setLoading(true);
@@ -46,27 +47,40 @@ export const useFuncionarios = () => {
 
     /**
      * [CREATE/UPDATE] Submete (cria ou atualiza) um funcionário.
-     * Usado pelo FuncionarioForm.
+     * ATUALIZADO: Aceita 'data' (payload de texto) e 'foto' (arquivo) separadamente.
      */
-    const submitFuncionario = async (data: FuncionarioPayload, id?: number): Promise<boolean> => {
+    const submitFuncionario = async (
+        data: FuncionarioPayload | Partial<FuncionarioPayload>, // Dados de texto do formulário
+        foto: File | null, // O arquivo (foto/pdf) ou null
+        id?: number // ID (se for edição)
+    ): Promise<boolean> => {
+        
         setLoading(true); // Usa o loading principal do hook
         setError(null);
+        
         try {
-            // Lógica idêntica ao useClientes:
-            id 
-                ? await FuncionarioService.updateFuncionario(id, data)
-                : await FuncionarioService.createFuncionario(data);
+            if (id) {
+                // MODO UPDATE: Chama updateFuncionario(id, data, foto)
+                // 'data' pode ser Partial<FuncionarioPayload>
+                await FuncionarioService.updateFuncionario(id, data, foto);
+            } else {
+                // MODO CREATE: Chama createFuncionario(data, foto)
+                // 'data' DEVE ser o FuncionarioPayload completo
+                await FuncionarioService.createFuncionario(data as FuncionarioPayload, foto);
+            }
             
-            // Recarrega a lista após o sucesso (idêntico ao useClientes)
+            // Recarrega a lista após o sucesso (mantendo padrão do useClientes)
             await fetchFuncionarios(); 
             return true; // Sucesso
         } catch (err) {
             console.error("Erro na submissão de funcionário:", err);
+            // Lógica de erro mantida (igual ao seu código)
             const errorMessage = axios.isAxiosError(err) && err.response?.data?.error 
                 ? err.response.data.error 
                 : 'Erro ao salvar funcionário.';
             setError(errorMessage);
-             // ✅ Trata 401 também no submit
+            
+            // ✅ Trata 401 também no submit
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 alert("Sua sessão expirou. Por favor, faça login novamente.");
                 logout();
@@ -79,18 +93,15 @@ export const useFuncionarios = () => {
     
     /**
      * [DELETE] Remove um funcionário.
+     * (Mantido como no seu código)
      */
-    const removeFuncionario = async (id: number): Promise<boolean> => { // Retorna boolean para feedback
-        // Confirmação (idêntica ao useClientes)
-        // O window.confirm foi movido para a Page, mas se quiser manter no hook:
-        // if (!window.confirm("Tem certeza que deseja deletar este funcionário?")) return false;
-
-        setLoading(true); // Indica que uma ação está ocorrendo
+    const removeFuncionario = async (id: number): Promise<boolean> => {
+        setLoading(true);
         setError(null);
         try {
             await FuncionarioService.deleteFuncionario(id);
             
-            // Atualiza o estado local removendo o item (idêntico ao useClientes)
+            // Atualiza o estado local removendo o item
             setFuncionarios(prev => prev.filter(f => f.id !== id));
             return true; // Sucesso
         } catch (err: any) {
@@ -99,6 +110,7 @@ export const useFuncionarios = () => {
                 ? err.response.data.error 
                 : 'Erro ao deletar funcionário.';
             setError(errorMessage);
+            
              // ✅ Trata 401 também no delete
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 alert("Sua sessão expirou. Por favor, faça login novamente.");
@@ -110,13 +122,12 @@ export const useFuncionarios = () => {
         }
     };
 
-
     // Retorna os dados e as funções
     return { 
         funcionarios, 
         loading, 
         error, 
-        submitFuncionario, 
+        submitFuncionario, // Assinatura atualizada
         removeFuncionario, 
         fetchFuncionarios 
     };

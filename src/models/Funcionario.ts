@@ -7,6 +7,7 @@ export enum TipoContrato {
 
 /**
  * Interface principal do Funcionário (o que recebemos da API).
+ * ATUALIZADA com os novos campos.
  */
 export interface Funcionario {
   id: number;
@@ -17,20 +18,34 @@ export interface Funcionario {
   tipoProfissao: string;
   tipoContrato: TipoContrato;
   createdById: number;
-  createdAt: string; // Prisma envia datas como string ISO
+  createdAt: string;
   updatedAt: string;
+  
+  // --- NOVOS CAMPOS ---
+  salario: number | null; // Prisma Decimal? (ou string? vou assumir number por ora)
+  sindicato: string | null;
+  cbo: string | null;
+  fotoUrl: string | null; // URL do Vercel Blob
 }
 
 /**
  * Interface (DTO/Payload) para CRIAR ou ATUALIZAR um funcionário.
- * (O que o frontend envia para a API).
+ * ATUALIZADA com os novos campos.
  */
 export interface FuncionarioPayload {
   nome: string;
   rg: string;
-  cpf: string; // Enviamos como string (com ou sem máscara, o backend limpa)
+  cpf: string;
   endereco: string;
   tipoProfissao: string;
   tipoContrato: TipoContrato;
-  // 'createdById' não é enviado, pois o backend pega do token JWT
+  
+  // --- NOVOS CAMPOS ---
+  // Salário é enviado como string, pois vem de um <input>
+  salario?: string; 
+  sindicato?: string;
+  cbo?: string;
+  
+  // O 'foto' (File) será enviado separadamente no FormData,
+  // por isso não está neste payload de texto.
 }

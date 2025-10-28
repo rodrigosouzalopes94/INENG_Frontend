@@ -21,7 +21,10 @@ const INITIAL_FORM: Partial<FuncionarioPayload> = {
   cpf: '',
   endereco: '',
   tipoProfissao: '',
-  tipoContrato: TipoContrato.REGISTRADO, // Define um padrão
+  tipoContrato: TipoContrato.REGISTRADO,
+  salario: '', // Adiciona novos campos
+  sindicato: '',
+  cbo: '',
 };
 
 // --- Styled Components (Reutilizando padrões) ---
@@ -29,8 +32,8 @@ const INITIAL_FORM: Partial<FuncionarioPayload> = {
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 15px; /* Espaço entre os campos */
-  padding: 10px 5px; /* Padding interno leve */
+  gap: 15px;
+  padding: 10px 5px;
   width: 100%;
   box-sizing: border-box;
 `;
@@ -39,13 +42,12 @@ const FormRow = styled.div`
   display: flex;
   gap: 15px;
   
-  /* Faz os inputs dentro da linha ocuparem espaço igual */
   & > * {
     flex: 1;
   }
 
   @media (max-width: 600px) {
-    flex-direction: column; /* Empilha campos em telas pequenas */
+    flex-direction: column;
     gap: 15px;
   }
 `;
@@ -58,7 +60,7 @@ const StyledLabel = styled.label`
   display: block;
 `;
 
-// Estilo base compartilhado (copiado de ObraForm)
+// Estilo base compartilhado
 const inputStyles = `
   padding: 10px 12px;
   border-radius: 6px;
@@ -92,6 +94,26 @@ const StyledSelect = styled.select`
   padding-right: 30px;
 `;
 
+// NOVO: Estilo para o input de arquivo (copiado de ObraForm)
+const StyledFileInput = styled.input.attrs({ type: 'file' })`
+  font-size: 0.9em;
+  color: ${Colors.text};
+  width: 100%;
+  margin-top: 5px;
+
+  &::file-selector-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid ${Colors.secondary};
+    background-color: ${Colors.background};
+    color: ${Colors.text};
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-right: 10px;
+    &:hover { background-color: #dfe6e9; }
+  }
+`;
+
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -117,6 +139,8 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
   const { submitFuncionario, loading, error: apiError } = useFuncionarios();
 
   const [formData, setFormData] = useState<Partial<FuncionarioPayload>>(INITIAL_FORM);
+  // NOVO: Estado para armazenar o arquivo selecionado
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof FuncionarioPayload, string>>>({});
 
   const isEditing = !!funcionarioInicial;
@@ -131,29 +155,45 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
         endereco: funcionarioInicial.endereco || '',
         tipoProfissao: funcionarioInicial.tipoProfissao || '',
         tipoContrato: funcionarioInicial.tipoContrato || TipoContrato.REGISTRADO,
+        // Adiciona novos campos
+        salario: funcionarioInicial.salario?.toString() || '', // Converte Decimal/number para string
+        sindicato: funcionarioInicial.sindicato || '',
+        cbo: funcionarioInicial.cbo || '',
       });
     } else {
       setFormData(INITIAL_FORM);
     }
-    setErrors({}); // Limpa erros ao mudar
+    setFotoFile(null); // Limpa o arquivo selecionado
+    setErrors({}); // Limpa erros
   }, [funcionarioInicial]);
 
-  // Handler genérico para inputs
+  // Handler genérico para inputs de texto
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     let valueToSet = value;
 
     if (name === 'cpf') {
-      valueToSet = value.replace(/\D/g, '').substring(0, 11); // Remove máscara e limita
+      valueToSet = value.replace(/\D/g, '').substring(0, 11);
     }
-    // Adicionar sanitização para RG se necessário
-    // if (name === 'rg') { ... }
+    if (name === 'salario') {
+      // Permite apenas números e uma vírgula (que será tratada como ponto)
+      valueToSet = value.replace(/[^0-9,]/g, '').replace(',', '.');
+    }
+    // Adicionar sanitização para RG, CBO se necessário
 
     setFormData(prev => ({ ...prev, [name]: valueToSet }));
-    // Limpa erro do campo ao digitar
     if (errors[name as keyof FuncionarioPayload]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
+  };
+  
+  // NOVO: Handler para o input de arquivo (foto/pdf)
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+          setFotoFile(e.target.files[0]);
+      } else {
+          setFotoFile(null);
+      }
   };
 
   // Handler para o Select
@@ -162,7 +202,7 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
     setFormData(prev => ({ ...prev, [name]: value as TipoContrato }));
   };
 
-  // Validação
+  // Validação (atualizada)
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof FuncionarioPayload, string>> = {};
     if (!formData.nome?.trim()) newErrors.nome = 'Nome é obrigatório.';
@@ -173,17 +213,26 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
     if (!formData.endereco?.trim()) newErrors.endereco = 'Endereço é obrigatório.';
     if (!formData.tipoProfissao?.trim()) newErrors.tipoProfissao = 'Profissão é obrigatória.';
     if (!formData.tipoContrato) newErrors.tipoContrato = 'Tipo de contrato é obrigatório.';
+    
+    // Validação CBO (Ex: 1234-56 ou 123456)
+    if (formData.cbo && !/^\d{4,6}(-\d{2})?$/.test(formData.cbo)) {
+        newErrors.cbo = 'CBO inválido. Use XXXXXX ou XXXX-XX.';
+    }
+    // Validação Salário (se preenchido, deve ser numérico)
+    if (formData.salario && isNaN(parseFloat(formData.salario))) {
+        newErrors.salario = 'Salário deve ser um número.';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Submissão
+  // Submissão (Atualizada para enviar o arquivo)
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    // Garante que o payload é do tipo completo (não parcial)
+    // Garante que o payload de texto está completo
     const payload: FuncionarioPayload = {
       nome: formData.nome!,
       rg: formData.rg!,
@@ -191,19 +240,23 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
       endereco: formData.endereco!,
       tipoProfissao: formData.tipoProfissao!,
       tipoContrato: formData.tipoContrato!,
+      // Novos campos opcionais
+      salario: formData.salario || undefined, // Envia undefined se vazio
+      sindicato: formData.sindicato || undefined,
+      cbo: formData.cbo || undefined,
     };
 
-    const success = await submitFuncionario(payload, funcionarioInicial?.id);
+    // Chama o hook 'submitFuncionario' atualizado, passando os dados E o arquivo
+    const success = await submitFuncionario(payload, fotoFile, funcionarioInicial?.id);
 
     if (success) {
-      onSave(); // Fecha o modal e atualiza a lista (controlado pela Page)
+      onSave(); // Fecha o modal
     }
-    // O 'apiError' do hook será exibido automaticamente
+    // 'apiError' do hook será exibido
   };
 
   return (
     <FormContainer onSubmit={handleSubmit}>
-      {/* Exibe erro retornado pela API */}
       {apiError && <ErrorMessage>{apiError}</ErrorMessage>}
 
       <Input
@@ -217,16 +270,15 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
         required
       />
       
-      {/* CPF e RG lado a lado */}
       <FormRow>
           <Input
             label="CPF *"
             name="cpf"
-            value={maskCPF(formData.cpf || '')} // Aplica máscara
+            value={maskCPF(formData.cpf || '')}
             onChange={handleChange}
             error={errors.cpf}
             disabled={loading}
-            maxLength={14} // 11 dígitos + máscara
+            maxLength={14}
             required
             inputMode="numeric"
           />
@@ -237,7 +289,7 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
             onChange={handleChange}
             error={errors.rg}
             disabled={loading}
-            maxLength={20} // Limite genérico para RG
+            maxLength={20}
             required
           />
       </FormRow>
@@ -252,7 +304,6 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
         required
       />
 
-      {/* Profissão e Contrato lado a lado */}
       <FormRow>
           <Input
             label="Profissão *"
@@ -264,7 +315,7 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
             required
             placeholder="Ex: Pedreiro"
           />
-          <div> {/* Wrapper para o Select + Label */}
+          <div>
               <StyledLabel htmlFor="tipoContrato">Tipo de Contrato *</StyledLabel>
               <StyledSelect
                 id="tipoContrato"
@@ -274,13 +325,71 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
                 disabled={loading}
                 required
               >
-                  {/* Itera sobre as chaves do Enum */}
                   {Object.values(TipoContrato).map(tipo => (
                       <option key={tipo} value={tipo}>{tipo.charAt(0) + tipo.slice(1).toLowerCase()}</option>
                   ))}
               </StyledSelect>
           </div>
       </FormRow>
+
+      {/* --- NOVOS CAMPOS --- */}
+      <FormRow>
+          <Input
+            label="Salário (R$)"
+            name="salario"
+            value={formData.salario || ''} // Controla o valor
+            onChange={handleChange} // Usa o handler que filtra
+            error={errors.salario}
+            disabled={loading}
+            placeholder="Ex: 2500.00"
+            inputMode="decimal" // Teclado numérico em mobile
+          />
+          <Input
+            label="CBO (XXXX-XX)"
+            name="cbo"
+            value={formData.cbo || ''}
+            onChange={handleChange}
+            error={errors.cbo}
+            disabled={loading}
+            maxLength={7} // 6 dígitos + hífen
+            placeholder="Ex: 7152-10"
+          />
+      </FormRow>
+      
+      <Input
+        label="Sindicato"
+        name="sindicato"
+        value={formData.sindicato || ''}
+        onChange={handleChange}
+        error={errors.sindicato}
+        disabled={loading}
+        placeholder="Ex: Sindicato dos Trabalhadores"
+      />
+
+      {/* NOVO: CAMPO DE FOTO/PDF */}
+      <div>
+          <StyledLabel htmlFor="foto">Foto ou Documento (PDF/JPEG)</StyledLabel>
+          {/* Exibe foto/link atual se estiver editando */}
+          {isEditing && funcionarioInicial?.fotoUrl && (
+             <div style={{ fontSize: '0.8em', marginBottom: '5px' }}>
+                <a href={funcionarioInicial.fotoUrl} target="_blank" rel="noopener noreferrer">Ver arquivo atual</a>
+                <p style={{ margin: '0', color: Colors.secondary }}>(Enviar um novo arquivo substituirá o atual)</p>
+             </div>
+          )}
+          <StyledFileInput
+            id="foto"
+            name="foto"
+            accept=".jpg, .jpeg, .png, .pdf" // Aceita formatos
+            onChange={handleFileChange}
+            disabled={loading}
+          />
+          {/* Mostra nome do arquivo selecionado */}
+          {fotoFile && (
+            <div style={{ fontSize: '0.8em', marginTop: '5px', color: Colors.secondary }}>
+                Arquivo selecionado: {fotoFile.name}
+            </div>
+          )}
+      </div>
       
       <ButtonContainer>
         <Button
@@ -292,9 +401,9 @@ const FuncionarioForm: React.FC<FuncionarioFormProps> = ({ funcionarioInicial, o
         />
         <Button
           type="submit"
-          variant="accent" // Laranja para ação principal
+          variant="accent"
           loading={loading}
-          title={isEditing ? 'Atualizar' : 'Cadastrar'}
+          title={isEditing ? 'Atualizar Funcionário' : 'Cadastrar Funcionário'}
         />
       </ButtonContainer>
     </FormContainer>

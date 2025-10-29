@@ -4,7 +4,6 @@ import type { Obra } from '../models/Obra';
 const BASE_ENDPOINT = '/obras';
 
 export const ObraService = {
-
   async createObra(formData: FormData): Promise<Obra> {
     const response = await api.post<Obra>(BASE_ENDPOINT, formData);
     return response.data;
@@ -20,13 +19,9 @@ export const ObraService = {
     return response.data;
   },
 
-  // ✅ Atualizado para aceitar FormData
   async updateObra(id: number, formData: FormData): Promise<Obra> {
-    const response = await api.put<Obra>(
-      `${BASE_ENDPOINT}/${id}`,
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    );
+    // Remove headers: axios vai setar automaticamente o Content-Type com boundary
+    const response = await api.put<Obra>(`${BASE_ENDPOINT}/${id}`, formData);
     return response.data;
   },
 

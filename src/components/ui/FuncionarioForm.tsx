@@ -1,7 +1,7 @@
 import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import styled from 'styled-components';
 import { Colors } from '../../theme/colors';
-import { type Funcionario, type FuncionarioPayload, TipoContrato } from '../../models/Funcionario';
+import { TipoContrato, type Funcionario, type FuncionarioPayload } from '../../models/Funcionario';
 import { useFuncionarios } from '../../hooks/useFuncionarios';
 import { maskCPF } from '../../utils/formatters';
 import Input from '../ui/Input';

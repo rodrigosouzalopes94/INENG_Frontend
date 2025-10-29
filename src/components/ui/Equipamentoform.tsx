@@ -1,151 +1,295 @@
-import React, { useState } from 'react';
-import { EquipamentoService } from '../../api/EquipamentoService';
-import type { Equipamento } from '../../models/Equipamento';
+import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import styled from 'styled-components';
 import { Colors } from '../../theme/colors';
+import type { Equipamento } from '../../models/Equipamento'; 
+import type { EquipamentoPayload } from '../../models/Funcionario';// Importa Payload
+import { useEquipamentos } from '../../hooks/useEquipamentos'; // Importa o Hook
+import Input from '../ui/Input';
+import Button from '../ui/Button';
 
+// --- Interfaces ---
 interface EquipamentoFormProps {
   equipamento?: Equipamento | null;
   onSaved: () => void;
   onCancel: () => void;
 }
 
+// Estado inicial para o formulário (baseado no Payload)
+const INITIAL_FORM: Partial<EquipamentoPayload> = {
+  patrimonio: '',
+  equipamento: '',
+  nf: '',
+  marca: '',
+  quantidade: '0', // Quantidade inicial
+};
+
+// --- Styled Components (Reutilizando padrões) ---
+
+const FormContainer = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Espaço entre os campos */
+  padding: 10px 5px; /* Padding interno leve */
+  width: 100%;
+  box-sizing: border-box;
+`;
+
+// Estilos de Input/Label (Reutilizados de ObraForm)
+const StyledLabel = styled.label`
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: ${Colors.text};
+  font-size: 0.9em;
+  display: block;
+`;
+
+const StyledFileInput = styled.input.attrs({ type: 'file' })`
+  font-size: 0.9em;
+  color: ${Colors.text};
+  width: 100%;
+  margin-top: 5px;
+
+  &::file-selector-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid ${Colors.secondary};
+    background-color: ${Colors.background};
+    color: ${Colors.text};
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-right: 10px;
+    &:hover { background-color: #dfe6e9; }
+  }
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid ${Colors.background};
+`;
+
+const ErrorMessage = styled.p`
+  color: ${Colors.danger};
+  font-weight: bold;
+  font-size: 0.9em;
+  margin: 0 0 10px 0;
+  text-align: left;
+  width: 100%;
+`;
+
+// --- Componente React ---
+
 const EquipamentoForm: React.FC<EquipamentoFormProps> = ({ equipamento, onSaved, onCancel }) => {
-  const [patrimonio, setPatrimonio] = useState(equipamento?.patrimonio || '');
-  const [nome, setNome] = useState(equipamento?.equipamento || '');
-  const [nf, setNf] = useState(equipamento?.nf || '');
-  const [marca, setMarca] = useState(equipamento?.marca || '');
-  
-  // Quantidade só é definida na criação
-  const [quantidadeInicial, setQuantidadeInicial] = useState('0');
-  
-  const [foto, setFoto] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Pega funções, loading e erro do hook
+  const { submitEquipamento, loading, error: apiError } = useEquipamentos();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  const [formData, setFormData] = useState<Partial<EquipamentoPayload>>(INITIAL_FORM);
+  const [fotoFile, setFotoFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof EquipamentoPayload, string>>>({});
 
-    const formData = new FormData();
-    formData.append('patrimonio', patrimonio);
-    formData.append('equipamento', nome);
-    formData.append('nf', nf);
-    formData.append('marca', marca);
+  const isEditing = !!equipamento;
 
-    if (foto) {
-      formData.append('foto', foto);
+  // Carrega dados para edição ou reseta para criação
+  useEffect(() => {
+    if (equipamento) {
+      setFormData({
+        patrimonio: equipamento.patrimonio || '',
+        equipamento: equipamento.equipamento || '',
+        nf: equipamento.nf || '',
+        marca: equipamento.marca || '',
+        // 'quantidade' não é editável aqui, é controlada por Movimentos
+        // Se precisar editar, adicione ao form. Por ora, omitido.
+      });
+    } else {
+      setFormData(INITIAL_FORM); // Reseta para criação
+    }
+    setFotoFile(null); // Limpa o arquivo selecionado
+    setErrors({}); // Limpa erros
+  }, [equipamento]); // Roda quando 'equipamento' (prop) muda
+
+  // Handler genérico para inputs de texto
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    // Sanitização (ex: 'quantidade' só aceita números)
+    let valueToSet = value;
+    if (name === 'quantidade') {
+        valueToSet = value.replace(/\D/g, ''); // Remove não-dígitos
     }
 
-    try {
-      if (equipamento?.id) {
-        // Atualização: Não enviamos 'quantidade'
-        await EquipamentoService.updateEquipamento(equipamento.id, formData);
+    setFormData(prev => ({ ...prev, [name]: valueToSet }));
+    
+    // Limpa erro do campo ao digitar
+    if (errors[name as keyof EquipamentoPayload]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+  
+  // Handler para o input de arquivo (foto/pdf)
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+          setFotoFile(e.target.files[0]);
       } else {
-        // Criação: Enviamos a quantidade inicial
-        formData.append('quantidade', quantidadeInicial);
-        await EquipamentoService.createEquipamento(formData);
+          setFotoFile(null);
       }
-      onSaved();
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.response?.data?.error || err.message || 'Erro ao salvar.');
-    } finally {
-      setLoading(false);
+  };
+
+  // Validação
+  const validate = (): boolean => {
+    const newErrors: Partial<Record<keyof EquipamentoPayload, string>> = {};
+    if (!formData.patrimonio?.trim()) newErrors.patrimonio = 'Nº de Patrimônio é obrigatório.';
+    if (!formData.equipamento?.trim()) newErrors.equipamento = 'Nome do Equipamento é obrigatório.';
+    if (!formData.marca?.trim()) newErrors.marca = 'Marca é obrigatória.';
+    if (!formData.nf?.trim()) newErrors.nf = 'Nota Fiscal (NF) é obrigatória.';
+    
+    // Valida quantidade apenas na criação
+    if (!isEditing) {
+        const qtd = parseInt(formData.quantidade || '0', 10);
+        if (isNaN(qtd) || qtd < 0) {
+             newErrors.quantidade = 'Quantidade inicial deve ser um número (0 ou mais).';
+        }
     }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Submissão (Atualizada para usar o hook)
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    // Prepara o payload de dados de texto
+    // (O Service espera 'quantidade' como string, pois vem de FormData)
+    const payload: EquipamentoPayload | Partial<EquipamentoPayload> = isEditing 
+      ? { // Em edição, não enviamos quantidade
+          patrimonio: formData.patrimonio!,
+          equipamento: formData.equipamento!,
+          nf: formData.nf!,
+          marca: formData.marca!,
+        }
+      : { // Na criação, enviamos tudo
+          patrimonio: formData.patrimonio!,
+          equipamento: formData.equipamento!,
+          nf: formData.nf!,
+          marca: formData.marca!,
+          quantidade: formData.quantidade || '0', // Garante que 'quantidade' seja string
+        };
+
+    // Chama o hook 'submitEquipamento', passando dados e o arquivo
+    const success = await submitEquipamento(payload, fotoFile, equipamento?.id);
+
+    if (success) {
+      onSaved(); // Fecha o modal
+    }
+    // O 'apiError' do hook será exibido automaticamente
   };
 
   return (
-    <form onSubmit={handleSubmit} style={styles.form}>
-      {error && <p style={styles.error}>{error}</p>}
+    <FormContainer onSubmit={handleSubmit}>
+      {/* Exibe erro retornado pela API */}
+      {apiError && <ErrorMessage>{apiError}</ErrorMessage>}
+
+      <Input
+        label="Nº Patrimônio *"
+        name="patrimonio"
+        value={formData.patrimonio || ''}
+        onChange={handleChange}
+        error={errors.patrimonio}
+        disabled={loading}
+        required
+      />
       
-      <label style={styles.label}>Nº Patrimônio:</label>
-      <input
-        style={styles.input}
-        type="text"
-        value={patrimonio}
-        onChange={(e) => setPatrimonio(e.target.value)}
+      <Input
+        label="Nome do Equipamento *"
+        name="equipamento"
+        value={formData.equipamento || ''}
+        onChange={handleChange}
+        error={errors.equipamento}
+        disabled={loading}
         required
       />
 
-      <label style={styles.label}>Nome do Equipamento:</label>
-      <input
-        style={styles.input}
-        type="text"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
+      <Input
+        label="Marca *"
+        name="marca"
+        value={formData.marca || ''}
+        onChange={handleChange}
+        error={errors.marca}
+        disabled={loading}
         required
       />
 
-      <label style={styles.label}>Marca:</label>
-      <input
-        style={styles.input}
-        type="text"
-        value={marca}
-        onChange={(e) => setMarca(e.target.value)}
-        required
-      />
-
-      <label style={styles.label}>Nota Fiscal (NF):</label>
-      <input
-        style={styles.input}
-        type="text"
-        value={nf}
-        onChange={(e) => setNf(e.target.value)}
+      <Input
+        label="Nota Fiscal (NF) *"
+        name="nf"
+        value={formData.nf || ''}
+        onChange={handleChange}
+        error={errors.nf}
+        disabled={loading}
         required
       />
 
       {/* Campo de quantidade só aparece na CRIAÇÃO */}
-      {!equipamento?.id && (
-        <>
-          <label style={styles.label}>Quantidade Inicial:</label>
-          <input
-            style={styles.input}
-            type="number"
-            value={quantidadeInicial}
-            onChange={(e) => setQuantidadeInicial(e.target.value)}
+      {!isEditing && (
+        <Input
+            label="Quantidade Inicial *"
+            name="quantidade"
+            type="number" // Input HTML tipo número
+            value={formData.quantidade || '0'}
+            onChange={handleChange} // Handler já remove não-dígitos
+            error={errors.quantidade}
+            disabled={loading}
             min="0"
-          />
-        </>
+            inputMode="numeric" // Teclado mobile
+        />
       )}
 
-      <label style={styles.label}>Foto (Opcional):</label>
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => setFoto(e.target.files ? e.target.files[0] : null)}
-      />
-
-      <div style={styles.buttonContainer}>
-        <button type="submit" disabled={loading} style={styles.submitButton}>
-          {loading ? 'Salvando...' : (equipamento ? 'Atualizar' : 'Cadastrar')}
-        </button>
-        <button type="button" onClick={onCancel} style={styles.cancelButton}>
-          Cancelar
-        </button>
+      {/* Campo de Foto/PDF */}
+      <div>
+          <StyledLabel htmlFor="foto">Foto ou Documento (PDF/JPEG)</StyledLabel>
+          {/* Exibe foto/link atual se estiver editando */}
+          {isEditing && equipamento?.fotoUrl && (
+             <div style={{ fontSize: '0.8em', marginBottom: '5px' }}>
+                <a href={equipamento.fotoUrl} target="_blank" rel="noopener noreferrer">Ver arquivo atual</a>
+                <p style={{ margin: '0', color: Colors.secondary }}>(Enviar um novo arquivo substituirá o atual)</p>
+             </div>
+          )}
+          <StyledFileInput
+            id="foto"
+            name="foto"
+            accept=".jpg, .jpeg, .png, .pdf" // Aceita formatos do backend
+            onChange={handleFileChange}
+            disabled={loading}
+          />
+          {/* Mostra nome do arquivo selecionado */}
+          {fotoFile && (
+            <div style={{ fontSize: '0.8em', marginTop: '5px', color: Colors.secondary }}>
+                Arquivo selecionado: {fotoFile.name}
+            </div>
+          )}
       </div>
-    </form>
+      
+      <ButtonContainer>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={onCancel}
+          title="Cancelar"
+          disabled={loading}
+        />
+        <Button
+          type="submit"
+          variant="accent" // Laranja
+          loading={loading}
+          title={isEditing ? 'Atualizar Equipamento' : 'Cadastrar Equipamento'}
+        />
+      </ButtonContainer>
+    </FormContainer>
   );
-};
-
-// Estilos (reutilizados do ObraForm)
-const styles: { [key: string]: React.CSSProperties } = {
-  form: {
-    display: 'flex', flexDirection: 'column', gap: 10, padding: 20,
-    width: '100%', maxWidth: 500,
-  },
-  label: { fontWeight: 'bold', marginBottom: 5, color: Colors.text },
-  input: { padding: 8, borderRadius: 5, border: `1px solid ${Colors.secondary}` },
-  buttonContainer: { display: 'flex', justifyContent: 'flex-start', gap: 10, marginTop: 10 },
-  submitButton: {
-    padding: '8px 15px', backgroundColor: Colors.accent, color: Colors.white,
-    border: 'none', borderRadius: 5, cursor: 'pointer',
-  },
-  cancelButton: {
-    padding: '8px 15px', backgroundColor: Colors.secondary, color: Colors.white,
-    border: 'none', borderRadius: 5, cursor: 'pointer',
-  },
-  error: { color: Colors.danger, fontWeight: 'bold' },
 };
 
 export default EquipamentoForm;

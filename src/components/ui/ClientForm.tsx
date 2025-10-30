@@ -13,7 +13,7 @@ interface ClienteFormProps {
     onSave: () => void;
 }
 
-const INITIAL_FORM: Partial<ClientePayload> = { // Usar Partial aqui pode ser mais seguro
+const INITIAL_FORM: Partial<ClientePayload> = {
     tipoPessoa: 'JURIDICA',
     nomeOuRazao: '',
     cep: '',
@@ -23,12 +23,33 @@ const INITIAL_FORM: Partial<ClientePayload> = { // Usar Partial aqui pode ser ma
 };
 
 // --- Styled Components ---
-
 const FormWrapper = styled.div`
   width: 100%;
   max-width: 550px;
   margin: 0 auto;
   padding: 10px;
+
+  /* Barra de rolagem */
+  max-height: 90vh;
+  overflow-y: auto;
+
+  scrollbar-width: thin;
+  scrollbar-color: ${Colors.primary} #f0f0f0;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: ${Colors.primary};
+    border-radius: 4px;
+    border: 2px solid #f0f0f0;
+  }
 `;
 
 const FormTitle = styled.h3`
@@ -43,7 +64,7 @@ const FormTitle = styled.h3`
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 15px; // Espaçamento entre os inputs/seções
+  gap: 15px; 
   width: 100%;
   align-items: center;
 `;
@@ -58,7 +79,7 @@ const ToggleLabel = styled.p`
   color: ${Colors.text};
   font-weight: bold;
   margin-bottom: 8px;
-  font-size: 0.9em; // Equivalente ao 14px anterior, mas relativo
+  font-size: 0.9em;
 `;
 
 const ToggleButtonGroup = styled.div`
@@ -67,23 +88,20 @@ const ToggleButtonGroup = styled.div`
   width: 100%;
 `;
 
-// Estiliza o componente Button importado especificamente para o toggle
 const ToggleButton = styled(Button)`
-  flex: 1; /* Ocupa metade do espaço */
+  flex: 1; 
   padding-top: 10px;
   padding-bottom: 10px;
 
-  /* Ajuste responsivo se necessário */
   @media (max-width: 400px) {
     font-size: 0.85em;
     padding: 8px 5px;
   }
 `;
 
-// Estiliza o componente Button importado especificamente para o submit
 const SubmitButton = styled(Button)`
   margin-top: 20px;
-  width: 100%; /* Ocupa largura total */
+  width: 100%;
 `;
 
 const ApiErrorText = styled.p`
@@ -99,11 +117,8 @@ const ApiErrorText = styled.p`
   margin-bottom: 15px;
 `;
 
-
-// --- Componente React (Lógica SEM ALTERAÇÕES) ---
-
+// --- Componente React ---
 const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => {
-    // Estado inicial ajustado para evitar erros de tipo com Partial
     const [formData, setFormData] = useState<Partial<ClientePayload>>(INITIAL_FORM);
     const [errors, setErrors] = useState<Partial<Record<keyof ClientePayload, string>>>({});
     const { submitCliente, loading, error: apiError } = useClientes();
@@ -112,14 +127,11 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
 
     useEffect(() => {
         if (clienteInicial) {
-            // Garante que todos os campos de INITIAL_FORM existam, preenchendo com '' se necessário
             const initialData: Partial<ClientePayload> = {
-                ...INITIAL_FORM, // Garante todos os campos
+                ...INITIAL_FORM,
                 ...clienteInicial,
-                // Garante que cpf/cnpj sejam strings vazias se null/undefined
                 cpf: clienteInicial.cpf || '',
                 cnpj: clienteInicial.cnpj || '',
-                // tipoPessoa já vem de clienteInicial
             };
             setFormData(initialData);
         } else {
@@ -132,7 +144,6 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         const { name, value } = e.target;
         let valueToSet = value;
 
-        // Sanitiza e limita campos numéricos
         if (name === 'cpf' || name === 'cnpj' || name === 'cep') {
             const rawValue = value.replace(/\D/g, '');
             if (name === 'cep') valueToSet = rawValue.substring(0, 8);
@@ -141,7 +152,7 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         }
 
         setFormData(prev => ({ ...prev, [name]: valueToSet }));
-        // Limpa erro ao digitar
+
         if (errors[name as keyof ClientePayload]) {
              setErrors(prev => {
                 const newErrors = { ...prev };
@@ -153,17 +164,16 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
 
     const handleTogglePessoa = (type: TipoPessoa) => {
         setFormData(prev => ({
-            ...INITIAL_FORM, // Reseta para evitar lixo de CPF/CNPJ
-            nomeOuRazao: prev.nomeOuRazao, // Mantém nome/razão se já digitado
-            cep: prev.cep, // Mantém CEP
-            enderecoCompleto: prev.enderecoCompleto, // Mantém endereço
+            ...INITIAL_FORM,
+            nomeOuRazao: prev.nomeOuRazao,
+            cep: prev.cep,
+            enderecoCompleto: prev.enderecoCompleto,
             tipoPessoa: type,
         }));
         setErrors({});
     };
 
-    // Validação (ajustada para Partial<ClientePayload>)
-     const validate = (): boolean => {
+    const validate = (): boolean => {
         const newErrors: Partial<Record<keyof ClientePayload, string>> = {};
         if (!formData.nomeOuRazao?.trim()) newErrors.nomeOuRazao = 'Nome/Razão Social é obrigatório.';
         if (!formData.cep || formData.cep.replace(/\D/g, '').length !== 8) newErrors.cep = 'CEP deve ter 8 dígitos.';
@@ -180,18 +190,15 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         return Object.keys(newErrors).length === 0;
     };
 
-    // Submissão (ajustada para Partial<ClientePayload>)
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
 
-        // Garante que todos os campos obrigatórios para o payload final existam
-        // e usa valores padrão ou lança erro se algo essencial faltar (embora validate deva pegar)
         const payload: ClientePayload = {
-            tipoPessoa: formData.tipoPessoa || 'JURIDICA', // Deve ter valor
-            nomeOuRazao: formData.nomeOuRazao?.trim() || '', // Deve ter valor
-            cep: (formData.cep || '').replace(/\D/g, ''), // Deve ter valor
-            enderecoCompleto: formData.enderecoCompleto?.trim() || '', // Deve ter valor
+            tipoPessoa: formData.tipoPessoa || 'JURIDICA',
+            nomeOuRazao: formData.nomeOuRazao?.trim() || '',
+            cep: (formData.cep || '').replace(/\D/g, ''),
+            enderecoCompleto: formData.enderecoCompleto?.trim() || '',
             cpf: !isPJ ? (formData.cpf || '').replace(/\D/g, '') : null,
             cnpj: isPJ ? (formData.cnpj || '').replace(/\D/g, '') : null,
         };
@@ -202,7 +209,6 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
         }
     };
 
-    // --- JSX com Styled Components ---
     return (
         <FormWrapper>
             <FormContainer onSubmit={handleSubmit}>
@@ -229,14 +235,13 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
                     </ToggleButtonGroup>
                 </ToggleContainer>
 
-                {/* Usa o componente Input refatorado */}
                 <Input
                     label={isPJ ? 'CNPJ *' : 'CPF *'}
                     name={isPJ ? 'cnpj' : 'cpf'}
                     value={isPJ ? maskCNPJ(formData.cnpj || '') : maskCPF(formData.cpf || '')}
                     onChange={handleChange}
                     maxLength={isPJ ? 18 : 14}
-                    error={errors.cnpj || errors.cpf} // Passa o erro para o Input
+                    error={errors.cnpj || errors.cpf}
                     required
                 />
 
@@ -267,7 +272,6 @@ const ClienteForm: React.FC<ClienteFormProps> = ({ clienteInicial, onSave }) => 
                     required
                 />
 
-                {/* Usa o componente Button refatorado através do SubmitButton */}
                 <SubmitButton
                     title={isEditing ? 'Salvar Alterações' : 'Cadastrar Cliente'}
                     type="submit"

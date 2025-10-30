@@ -3,7 +3,6 @@ import axios from 'axios'; // Importa axios para checagem de erro
 import { EquipamentoService } from '../api/EquipamentoService'; // Service refatorado
 // Importa os modelos, incluindo o Payload
 import type { Equipamento, EquipamentoPayload } from '../models/Equipamento'; 
-import type { EquipamentoPayload } from '../models/Funcionario';
 import { useAuthContext } from '../context/AuthContext'; // Para logout em caso de 401
 
 export const useEquipamentos = () => {

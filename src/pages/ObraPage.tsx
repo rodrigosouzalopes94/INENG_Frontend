@@ -1,36 +1,33 @@
+// src/pages/ObraPage.tsx
 import React, { useState } from 'react';
-import styled from 'styled-components'; // Import styled
-import { useClientes } from '../hooks/useClientes'; // Hook de clientes
-import { useObrasList } from '../hooks/useObrasList'; // Hook de Obras
+import styled from 'styled-components';
+import { useClientes } from '../hooks/useClientes';
+import { useObrasList } from '../hooks/useObrasList';
 import { ObraService } from '../api/ObraService';
 import type { Obra } from '../models/Obra';
-import CardComponent from '../components/ui/Card'; // Renomeia Card
-import Button from '../components/ui/Button'; // Importa Button refatorado
+import CardComponent from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import DashboardLayout from '../components/ui/DashboardLayout';
-// Mantém imports do Radix UI Dialog e renomeia
 import {
-    Dialog,
-    DialogContent as RadixDialogContent,
-    DialogTitle as RadixDialogTitle,
-    DialogClose,
-    DialogPortal,
-    DialogOverlay as RadixDialogOverlay
+  Dialog,
+  DialogContent as RadixDialogContent,
+  DialogTitle as RadixDialogTitle,
+  DialogClose,
+  DialogPortal,
+  DialogOverlay as RadixDialogOverlay
 } from '@radix-ui/react-dialog';
-// Assume que ObraForm já foi refatorado ou usa componentes refatorados
 import ObraForm from '../components/ui/ObraForm';
 import { Colors } from '../theme/colors';
 
-// --- Imports e Lógica (Ajuste na tipagem de menuItems se necessário) ---
 const menuItems = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Clientes', path: '/clientes' },
-    { label: 'Obras', path: '/obras' },
-    { label: 'Equipamentos', path: '/equipamentos' },
-    { label: 'Funcionários', path: '/funcionarios', allowedRoles: ['GESTOR', 'ADMIN'] as const }, // Exemplo com roles
+  { label: 'Dashboard', path: '/dashboard' },
+  { label: 'Clientes', path: '/clientes' },
+  { label: 'Obras', path: '/obras' },
+  { label: 'Equipamentos', path: '/equipamentos' },
+  { label: 'Funcionários', path: '/funcionarios', allowedRoles: ['GESTOR', 'ADMIN'] as const },
 ];
 
-// --- Styled Components ---
-
+// Styled Components
 const LoadingMessage = styled.p`
   padding: 30px;
   text-align: center;
@@ -48,7 +45,6 @@ const ErrorMessage = styled.p`
   margin: 20px 0;
 `;
 
-// Header (Reutilizado)
 const Header = styled.header`
   display: flex;
   justify-content: center;
@@ -73,7 +69,6 @@ const PageTitle = styled.h1`
   }
 `;
 
-// Wrapper para o botão (Reutilizado)
 const ButtonWrapper = styled.div`
   position: absolute;
   right: 0;
@@ -88,7 +83,6 @@ const ButtonWrapper = styled.div`
   }
 `;
 
-// Botão Adicionar (Usa o componente Button refatorado)
 const AddButton = styled(Button)`
   padding: 8px 15px;
 
@@ -97,43 +91,36 @@ const AddButton = styled(Button)`
   }
 `;
 
-// Container dos Cards (Usa Grid Layout)
 const CardsContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Colunas responsivas */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 25px;
   padding-bottom: 30px;
 
   @media (max-width: 600px) {
-    grid-template-columns: 1fr; // Uma coluna
+    grid-template-columns: 1fr;
     gap: 20px;
   }
 `;
 
-// Estiliza o CardComponent para Obras
-// Passa 'highlight' para o componente base
 const ObraCard = styled(CardComponent)`
   display: flex;
   flex-direction: column;
-  /* Padding base ('medium' por padrão) já vem do CardComponent */
 `;
 
-// Container para o conteúdo textual do card (interno)
 const CardContent = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Espaço entre textos */
-  flex-grow: 1; /* Empurra ações para baixo */
-  /* Padding já vem do CardComponent base, não precisa aqui a menos que queira sobrescrever */
+  gap: 6px;
+  flex-grow: 1;
 `;
-
 
 const CardLabel = styled.p`
   font-size: 0.9em;
   font-weight: bold;
   color: ${Colors.secondary};
   margin: 0;
-  text-transform: capitalize; // 'Construção' ou 'Reforma'
+  text-transform: capitalize;
 `;
 
 const CardTitle = styled.p`
@@ -149,35 +136,30 @@ const CardDetail = styled.p`
   margin: 0;
 `;
 
-// Container para os botões de ação (interno)
 const CardActions = styled.div`
   display: flex;
-  gap: 10px; /* Espaço entre botões Editar/Excluir */
-  margin-top: auto; /* Empurra para o final do card */
-  padding-top: 15px; /* Espaço acima dos botões */
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 15px;
   border-top: 1px solid ${Colors.background};
-  justify-content: flex-end; /* Alinha botões à direita */
+  justify-content: flex-end;
 `;
 
-// Botões de Ação
 const ActionButton = styled(Button)`
   padding: 6px 12px;
   font-size: 0.85em;
 `;
-const EditButton = styled(ActionButton)``; // Alias para clareza
+const EditButton = styled(ActionButton)``;
 const DeleteButton = styled(ActionButton)``;
 
-// Mensagem para lista vazia
 const EmptyListMessage = styled.p`
-    text-align: center;
-    color: ${Colors.secondary};
-    grid-column: 1 / -1; /* Ocupa todas as colunas do grid */
-    padding: 30px;
-    font-style: italic;
+  text-align: center;
+  color: ${Colors.secondary};
+  grid-column: 1 / -1;
+  padding: 30px;
+  font-style: italic;
 `;
 
-
-// --- Estilos do Modal (Reutilizados) ---
 const DialogOverlay = styled(RadixDialogOverlay)`
   background-color: rgba(0, 0, 0, 0.5);
   position: fixed;
@@ -231,132 +213,111 @@ const DialogCloseButton = styled(DialogClose)`
   }
 `;
 
-// --- Componente React ---
+const ObraPage: React.FC = () => {
+  const { clientes, loading: loadingClientes, error: errorClientes } = useClientes();
+  const { obras, loading: loadingObras, error: obrasError, fetchObras } = useObrasList();
+  const [selectedObra, setSelectedObra] = useState<Obra | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-const ObraPage: React.FC = () => { // Renomeado para ObraPage
-    // --- Hooks e State ---
-    const { clientes, loading: loadingClientes, error: errorClientes } = useClientes();
-    // Renomeia 'error' para 'obrasError' para evitar colisão
-    const { obras, loading: loadingObras, error: obrasError, fetchObras } = useObrasList();
-    const [selectedObra, setSelectedObra] = useState<Obra | null>(null);
-    const [dialogOpen, setDialogOpen] = useState(false);
-
-    // --- Handlers (Lógica SEM ALTERAÇÕES) ---
-    const handleAddObra = () => {
-        setSelectedObra(null);
-        setDialogOpen(true);
-    };
-    const handleEditObra = (obra: Obra) => {
-        setSelectedObra(obra);
-        setDialogOpen(true);
-    };
-    const handleDeleteObra = async (id: number | string) => { // Aceita number ou string
-        if (window.confirm('Tem certeza que deseja excluir esta obra? Esta ação não pode ser desfeita.')) {
-            try {
-                await ObraService.deleteObra(Number(id)); // Converte para número
-                await fetchObras();
-            } catch (error) { // 'error' local do catch
-                console.error("Erro ao excluir obra:", error);
-                alert("Não foi possível excluir a obra. Tente novamente.");
-            }
-        }
-    };
-    const handleSaved = async () => {
-        setDialogOpen(false);
+  const handleAddObra = () => {
+    setSelectedObra(null);
+    setDialogOpen(true);
+  };
+  const handleEditObra = (obra: Obra) => {
+    setSelectedObra(obra);
+    setDialogOpen(true);
+  };
+  const handleDeleteObra = async (id: number | string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta obra? Esta ação não pode ser desfeita.')) {
+      try {
+        await ObraService.deleteObra(Number(id));
         await fetchObras();
-    };
-    const handleClose = () => {
-        setDialogOpen(false);
-    };
-
-    // Determina a mensagem de erro a ser exibida
-    let displayError = null;
-    if (errorClientes) {
-        displayError = errorClientes instanceof Error ? errorClientes.message : String(errorClientes);
-    } else if (obrasError && !loadingObras) { // Usa obrasError
-        displayError = obrasError instanceof Error ? obrasError.message : String(obrasError);
+      } catch (error) {
+        console.error("Erro ao excluir obra:", error);
+        alert("Não foi possível excluir a obra. Tente novamente.");
+      }
     }
+  };
+  const handleSaved = async () => {
+    setDialogOpen(false);
+    await fetchObras();
+  };
+  const handleClose = () => setDialogOpen(false);
 
+  let displayError = null;
+  if (errorClientes) displayError = String(errorClientes);
+  else if (obrasError && !loadingObras) displayError = String(obrasError);
 
-    // --- JSX com Styled Components ---
-    return (
-        <DashboardLayout menuItems={menuItems} userRole="GESTOR"> {/* Assume GESTOR */}
-            <Header>
-                <PageTitle>Obras</PageTitle>
-                <ButtonWrapper>
-                    <AddButton variant="accent" onClick={handleAddObra}>
-                        + Nova Obra
-                    </AddButton>
-                </ButtonWrapper>
-            </Header>
+  return (
+    <DashboardLayout menuItems={menuItems} userRole="GESTOR">
+      <Header>
+        <PageTitle>Obras</PageTitle>
+        <ButtonWrapper>
+          <AddButton variant="accent" onClick={handleAddObra}>
+            + Nova Obra
+          </AddButton>
+        </ButtonWrapper>
+      </Header>
 
-            {(loadingObras || loadingClientes) && <LoadingMessage>Carregando...</LoadingMessage>}
+      {(loadingObras || loadingClientes) && <LoadingMessage>Carregando...</LoadingMessage>}
+      {displayError && <ErrorMessage>{displayError}</ErrorMessage>}
+      {!loadingObras && !obrasError && obras.length === 0 && !errorClientes && (
+        <EmptyListMessage>Nenhuma obra cadastrada.</EmptyListMessage>
+      )}
 
-            {/* Usa displayError */}
-            {displayError && (
-                 <ErrorMessage>{displayError}</ErrorMessage>
-            )}
+      {!loadingObras && !obrasError && obras.length > 0 && (
+        <CardsContainer>
+          {obras.map((obra) => (
+            <ObraCard
+              key={obra.id}
+              highlight={obra.tipoObra === 'CONSTRUCAO' ? 'primary' : 'accent'}
+              paddingSize="medium"
+            >
+              {obra.fotos && obra.fotos.length > 0 && (
+                <img
+                  src={obra.fotos[0].url}
+                  alt={obra.nomeObra}
+                  style={{
+                    width: '100%',
+                    height: '150px',
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    marginBottom: '10px'
+                  }}
+                />
+              )}
+              <CardContent>
+                <CardLabel>{obra.tipoObra === 'CONSTRUCAO' ? 'Construção' : 'Reforma'}</CardLabel>
+                <CardTitle>{obra.nomeObra}</CardTitle>
+                <CardDetail>Cliente: {obra.cliente?.nomeOuRazao || 'N/A'}</CardDetail>
+                <CardDetail>Endereço: {obra.enderecoCompleto || 'N/A'}</CardDetail>
+              </CardContent>
+              <CardActions>
+                <EditButton variant="accent" onClick={() => handleEditObra(obra)}>Editar</EditButton>
+                <DeleteButton variant="danger" onClick={() => handleDeleteObra(obra.id)}>Excluir</DeleteButton>
+              </CardActions>
+            </ObraCard>
+          ))}
+        </CardsContainer>
+      )}
 
-
-            {/* Usa 'obrasError' nas condicionais */}
-            {!loadingObras && !obrasError && obras.length === 0 && !errorClientes && (
-                <EmptyListMessage>Nenhuma obra cadastrada.</EmptyListMessage>
-            )}
-
-            {!loadingObras && !obrasError && obras.length > 0 && ( // Usa !obrasError
-                <CardsContainer>
-                    {obras.map((obra) => (
-                        // Usa ObraCard estilizado, passando highlight
-                        <ObraCard
-                            key={obra.id}
-                            highlight={obra.tipoObra === 'CONSTRUCAO' ? 'primary' : 'accent'}
-                            paddingSize="medium" // Usa o padding padrão do Card base
-                        >
-                            {/* O padding agora é aplicado pelo Card base, então CardContent não precisa */}
-                            <CardContent>
-                                <CardLabel>
-                                    {obra.tipoObra === 'CONSTRUCAO' ? 'Construção' : 'Reforma'}
-                                </CardLabel>
-                                <CardTitle>{obra.nomeObra}</CardTitle>
-                                <CardDetail>Cliente: {obra.cliente?.nomeOuRazao || 'N/A'}</CardDetail>
-                                <CardDetail>Endereço: {obra.enderecoCompleto || 'N/A'}</CardDetail>
-                            </CardContent>
-
-                            <CardActions>
-                                <EditButton variant="accent" onClick={() => handleEditObra(obra)}>
-                                    Editar
-                                </EditButton>
-                                <DeleteButton variant="danger" onClick={() => handleDeleteObra(obra.id)}>
-                                    Excluir
-                                </DeleteButton>
-                            </CardActions>
-                        </ObraCard>
-                    ))}
-                </CardsContainer>
-            )}
-
-            {/* Modal com Portal (Usando Dialogs Estilizados) */}
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogPortal>
-                    <DialogOverlay />
-                    <DialogContent>
-                        <DialogTitle>
-                            {selectedObra ? 'Editar Obra' : 'Nova Obra'}
-                        </DialogTitle>
-                        {/* Assume que ObraForm foi refatorado */}
-                        <ObraForm
-                            obra={selectedObra ?? undefined} // Passa undefined se null
-                            clientes={clientes || []} // Passa array vazio se clientes for undefined/null
-                            onSaved={handleSaved}
-                            onClose={handleClose}
-                        />
-                        {/* O 'X' agora vem do botão estilizado */}
-                        <DialogCloseButton aria-label="Fechar">×</DialogCloseButton>
-                    </DialogContent>
-                </DialogPortal>
-            </Dialog>
-        </DashboardLayout>
-    );
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogPortal>
+          <DialogOverlay />
+          <DialogContent>
+            <DialogTitle>{selectedObra ? 'Editar Obra' : 'Nova Obra'}</DialogTitle>
+            <ObraForm
+              obra={selectedObra ?? undefined}
+              clientes={clientes || []}
+              onSaved={handleSaved}
+              onClose={handleClose}
+            />
+            <DialogCloseButton aria-label="Fechar">×</DialogCloseButton>
+          </DialogContent>
+        </DialogPortal>
+      </Dialog>
+    </DashboardLayout>
+  );
 };
 
 export default ObraPage;

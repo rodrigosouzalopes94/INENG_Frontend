@@ -1,73 +1,98 @@
-// src/hooks/useObraForm.ts
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ObraService } from '../api/ObraService';
+import { ObraService } from '../api/ObraService'; // Service refatorado
 import { ClienteService } from '../api/ClienteService';
-import type { Obra, ObraFormData } from '../models/Obra';
+// Importa ObraPayload e Foto, mas ObraFormData (com FileList) não é mais necessária no hook
+import type { Obra, ObraPayload, Foto } from '../models/Obra'; 
 import type { Cliente } from '../models/Cliente';
+import { useAuthContext } from '../context/AuthContext'; // Para logout
 
-export const useObraForm = (obraInicial?: Obra) => {
-  const [loading, setLoading] = useState(false);
+// Interface para os dados que o *Formulário* envia para este hook
+interface SubmitData {
+  nomeObra: string;
+  tipoObra: Obra['tipoObra'];
+  clienteId: number;
+  enderecoCompleto: string;
+  dataInicio: string;
+  previsaoEntrega: string;
+  cno?: string;
+  descricao?: string;
+  fotos?: File[] | null; // O formulário envia um Array de Files
+  fotosExistentes?: Foto[]; // O formulário envia fotos antigas (para lógica futura)
+}
+
+
+export const useObraForm = (obraInicial?: Obra) => { // Mantém o nome do hook
+  const [loading, setLoading] = useState(false); // Loading para Clientes E Submissão
   const [apiError, setApiError] = useState<string | null>(null);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const { logout } = useAuthContext(); // Pega o logout
   
-  // Carrega clientes
+  // Carrega clientes (lógica mantida)
   useEffect(() => {
     const fetchClientes = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const clientesData = await ClienteService.listClientes();
         setClientes(clientesData);
       } catch (err) {
         console.error("Erro ao carregar clientes:", err);
         setApiError('Não foi possível carregar a lista de clientes.');
+        // Adiciona checagem 401
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+            logout();
+        }
       } finally {
         setLoading(false);
       }
     };
     fetchClientes();
-  }, []);
+  }, [logout]); // Adiciona logout
 
-  // Submissão do formulário (cadastro/edição)
-  const submitObra = async (data: ObraFormData, obraId?: number): Promise<boolean> => {
+  // --- SUBMISSÃO (A LÓGICA REFATORADA) ---
+  const submitObra = async (data: SubmitData, obraId?: number): Promise<boolean> => {
     setLoading(true);
     setApiError(null);
 
     try {
-      const form = new FormData();
-      form.append('nomeObra', data.nomeObra);
-      form.append('tipoObra', data.tipoObra.toUpperCase());
-      form.append('clienteId', String(data.clienteId));
-      form.append('enderecoCompleto', data.enderecoCompleto);
-      form.append('dataInicio', data.dataInicio);
-      form.append('previsaoEntrega', data.previsaoEntrega);
-      if (data.cno) form.append('cno', data.cno);
-      if (data.descricao) form.append('descricao', data.descricao);
+      // 1. Separa os arquivos (File) dos dados de texto (Payload)
+      const { fotos, fotosExistentes, ...payloadDeTexto } = data;
+      // (fotosExistentes não é usado pelo service ainda, mas o separamos)
 
-      // Fotos novas
-      if (data.fotos && data.fotos.length > 0) {
-        Array.from(data.fotos).forEach(file => form.append('fotos', file));
-      }
+      // 2. Converte clienteId para string (se o backend/service esperar assim no form-data)
+      //    ou mantém como número se o payload for ObraPayload (que espera number)
+      //    O nosso ObraService (frontend) espera ObraPayload.
+      const payloadFinal: ObraPayload | Partial<ObraPayload> = {
+          ...payloadDeTexto,
+          clienteId: Number(payloadDeTexto.clienteId), // Garante que é número
+          // Remove campos vazios que não são opcionais no backend (ex: cno)
+          cno: data.cno || undefined, 
+          descricao: data.descricao || undefined,
+      };
 
-      // Fotos existentes (para edição)
-      if (data.fotosExistentes && data.fotosExistentes.length > 0) {
-        form.append('fotosExistentes', JSON.stringify(data.fotosExistentes));
-      }
-
+      // 3. Chama o ObraService refatorado, passando dados e arquivos separados
       if (obraId) {
-        await ObraService.updateObra(obraId, form);
+        // Modo Update
+        await ObraService.updateObra(obraId, payloadFinal, fotos || null);
       } else {
-        await ObraService.createObra(form);
+        // Modo Create
+        await ObraService.createObra(payloadFinal as ObraPayload, fotos || null);
       }
 
-      return true;
+      return true; // Sucesso
+
     } catch (err: any) {
       const errorMessage =
         axios.isAxiosError(err) && err.response?.data?.error
           ? err.response.data.error
           : 'Erro ao enviar obra. Verifique o console.';
-      console.error("Erro ao enviar obra:", err);
+      console.error("Erro ao enviar obra (useObraForm):", err);
       setApiError(errorMessage);
+      
+      // Adiciona checagem 401
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+          logout();
+      }
       return false;
     } finally {
       setLoading(false);
@@ -75,10 +100,10 @@ export const useObraForm = (obraInicial?: Obra) => {
   };
 
   return {
-    submitObra,
+    submitObra, // Função de submissão corrigida
     loading,
     apiError,
     clientes,
-    setClientes,
+    // setClientes, // Removido, o hook gerencia isso
   };
 };

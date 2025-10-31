@@ -1,13 +1,14 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled from 'styled-components'; // Importa styled-components
 import { useAuthContext } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
-import CardComponent from '../components/ui/Card'; // Importa Card refatorado (com 'highlight' prop)
+import CardComponent from '../components/ui/Card'; // Importa Card refatorado
 import DashboardLayout from '../components/ui/DashboardLayout';
-import { AiOutlineProject, AiOutlineTeam, AiOutlineTool } from 'react-icons/ai';
-import { useDashboardData } from '../hooks/useDashboardData';
+// Importa o ícone de Funcionário
+import { AiOutlineProject, AiOutlineTeam, AiOutlineTool, AiOutlineUser } from 'react-icons/ai'; 
+import { useDashboardData } from '../hooks/useDashboardData'; // Hook que busca todos os dados
 
-// --- Imports e Lógica (Ajuste na tipagem de menuItems) ---
+// --- Menu Items (com tipagem correta) ---
 const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Clientes', path: '/clientes' },
@@ -29,6 +30,10 @@ const ErrorMessage = styled.p`
   color: ${Colors.danger};
   text-align: center;
   padding: 20px;
+  background-color: #fff4f4;
+  border: 1px solid ${Colors.danger};
+  border-radius: 8px;
+  margin: 20px 0;
 `;
 
 const Header = styled.header`
@@ -85,6 +90,7 @@ const WelcomeText = styled.p`
   }
 `;
 
+// Container dos cards de métrica
 const CardsContainer = styled.div`
   display: flex;
   gap: 20px;
@@ -93,6 +99,7 @@ const CardsContainer = styled.div`
   margin-bottom: 40px;
 `;
 
+// Card de métrica
 const MetricCard = styled(CardComponent)`
   width: 180px;
   min-width: 150px;
@@ -102,6 +109,7 @@ const MetricCard = styled(CardComponent)`
   gap: 5px;
   flex-grow: 1;
   max-width: 200px;
+  padding: 15px; // Garante o padding
 
   svg {
     margin-bottom: 5px;
@@ -121,6 +129,7 @@ const CardValue = styled.p`
   margin: 0;
 `;
 
+// Container das colunas de "Recentes"
 const CentralContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -140,6 +149,7 @@ const CentralContainer = styled.div`
   }
 `;
 
+// Coluna individual
 const Column = styled.div`
   display: flex;
   flex-direction: column;
@@ -163,20 +173,15 @@ const SectionTitle = styled.h2`
   text-align: center;
 `;
 
-// CORRIGIDO: Remove background-color condicional
+// Card para as listas de recentes
 const DashboardListCard = styled(CardComponent)`
-  /* Adiciona padding menor */
-  padding: 18px;
   gap: 6px;
   transition: transform 0.2s ease-in-out;
+  width: 100%; // Garante que ocupe a coluna
 
   &:hover {
     transform: translateY(-3px);
   }
-
-  /* REMOVIDO: Linhas de background-color que usavam cores inexistentes */
-  /* ${props => props.highlight === 'primary' && `background-color: ${Colors.primaryLight || '#eaf2f8'};`} */
-  /* ${props => props.highlight === 'accent' && `background-color: ${Colors.accentLight || '#fef5e7'};`} */
 `;
 
 const ListCardTitle = styled.p`
@@ -204,7 +209,8 @@ const ListCardStock = styled.p`
 
 const DashboardPage: React.FC = () => {
     const { user, loading: authLoading } = useAuthContext();
-    const { obras, clientes, equipamentos, loading, error } = useDashboardData();
+    // Pega TODOS os dados do hook, incluindo 'funcionarios'
+    const { obras, clientes, equipamentos, funcionarios, loading, error } = useDashboardData();
 
     const userName = user?.name || 'Visitante';
     const userRole: 'GESTOR' | 'ADMIN' = user?.role === 'ADMIN' ? 'ADMIN' : 'GESTOR';
@@ -213,19 +219,28 @@ const DashboardPage: React.FC = () => {
     if (authLoading || loading) {
         return <LoadingContainer>Carregando Dashboard...</LoadingContainer>;
     }
+    
+    // Mostra erro se houver (converte objeto Error para string)
+    let errorMessage: string | null = null;
     if (error) {
+        errorMessage = error instanceof Error ? error.message : String(error);
+    }
+    
+    if (errorMessage) {
         return (
              <DashboardLayout menuItems={menuItems} userRole={userRole}>
-                <ErrorMessage>Erro ao carregar dados: {error.message}</ErrorMessage>
+                <ErrorMessage>Erro ao carregar dados: {errorMessage}</ErrorMessage>
             </DashboardLayout>
         );
     }
 
-    // --- Lógica de Métricas ---
+    // --- Lógica de Métricas (COM FUNCIONÁRIOS) ---
     const metrics = [
         { label: 'Obras', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> },
         { label: 'Clientes', value: clientes.length, icon: <AiOutlineTeam size={30} color={Colors.accent} /> },
         { label: 'Equipamentos', value: equipamentos.length, icon: <AiOutlineTool size={30} color={Colors.accent} /> },
+        // ✅ CARD DE FUNCIONÁRIOS ADICIONADO
+        { label: 'Funcionários', value: funcionarios.length, icon: <AiOutlineUser size={30} color={Colors.accent} /> },
     ];
 
     // --- JSX com Styled Components ---
@@ -240,6 +255,7 @@ const DashboardPage: React.FC = () => {
                 </WelcomeWrapper>
             </Header>
 
+            {/* Cards de Métrica */}
             <CardsContainer>
                 {metrics.map((metric, idx) => (
                     <MetricCard key={idx} paddingSize="medium">
@@ -250,53 +266,91 @@ const DashboardPage: React.FC = () => {
                 ))}
             </CardsContainer>
 
+            {/* Colunas de Dados Recentes */}
             <CentralContainer>
                 {/* Obras Recentes */}
                 <Column>
                     <SectionTitle>Obras Recentes</SectionTitle>
-                    {obras.slice(0, 5).map((obra) => (
-                        // Usa DashboardListCard com a prop highlight (agora só afeta a borda)
-                        <DashboardListCard
-                            key={obra.id}
-                            highlight={obra.tipoObra === 'CONSTRUCAO' ? 'primary' : 'accent'}
-                            paddingSize="medium"
-                        >
-                            <ListCardTitle>{obra.nomeObra}</ListCardTitle>
-                            <ListCardDetail>Tipo: {obra.tipoObra}</ListCardDetail>
-                            <ListCardDetail>Cliente: {obra.cliente?.nomeOuRazao}</ListCardDetail>
-                        </DashboardListCard>
-                    ))}
+                    {obras.length > 0 ? (
+                        obras.slice(0, 5).map((obra) => (
+                            <DashboardListCard
+                                key={obra.id}
+                                highlight={obra.tipoObra === 'CONSTRUCAO' ? 'primary' : 'accent'}
+                                paddingSize="medium"
+                            >
+                                <ListCardTitle>{obra.nomeObra}</ListCardTitle>
+                                <ListCardDetail>Tipo: {obra.tipoObra}</ListCardDetail>
+                                <ListCardDetail>Cliente: {obra.cliente?.nomeOuRazao || 'N/A'}</ListCardDetail>
+                            </DashboardListCard>
+                        ))
+                    ) : (
+                        <ListCardDetail style={{ textAlign: 'center', fontStyle: 'italic' }}>Nenhuma obra recente.</ListCardDetail>
+                    )}
                 </Column>
 
                 {/* Clientes Recentes */}
                 <Column>
                     <SectionTitle>Clientes Recentes</SectionTitle>
-                    {clientes.slice(0, 5).map((cliente) => (
-                        <DashboardListCard key={cliente.id} paddingSize="medium">
-                            <ListCardTitle>{cliente.nomeOuRazao}</ListCardTitle>
-                            <ListCardDetail>Tipo: {cliente.tipoPessoa}</ListCardDetail>
-                            <ListCardDetail>
-                                {cliente.tipoPessoa === 'FISICA' ? `CPF: ${cliente.cpf}` : `CNPJ: ${cliente.cnpj}`}
-                            </ListCardDetail>
-                        </DashboardListCard>
-                    ))}
+                     {clientes.length > 0 ? (
+                        clientes.slice(0, 5).map((cliente) => (
+                            <DashboardListCard key={cliente.id} paddingSize="medium">
+                                <ListCardTitle>{cliente.nomeOuRazao}</ListCardTitle>
+                                <ListCardDetail>Tipo: {cliente.tipoPessoa}</ListCardDetail>
+                                <ListCardDetail>
+                                    {cliente.tipoPessoa === 'FISICA' ? `CPF: ${cliente.cpf}` : `CNPJ: ${cliente.cnpj}`}
+                                </ListCardDetail>
+                            </DashboardListCard>
+                        ))
+                    ) : (
+                         <ListCardDetail style={{ textAlign: 'center', fontStyle: 'italic' }}>Nenhum cliente recente.</ListCardDetail>
+                    )}
                 </Column>
 
                 {/* Equipamentos Recentes */}
                 <Column>
                     <SectionTitle>Equipamentos Recentes</SectionTitle>
-                    {equipamentos.slice(0, 5).map((equipamento) => (
-                        <DashboardListCard key={equipamento.id} paddingSize="medium">
-                            <ListCardTitle>{equipamento.equipamento}</ListCardTitle>
-                            <ListCardDetail>Patrimônio: {equipamento.patrimonio}</ListCardDetail>
-                            <ListCardDetail>Marca: {equipamento.marca}</ListCardDetail>
-                            <ListCardStock>Estoque: {equipamento.quantidade}</ListCardStock>
-                        </DashboardListCard>
-                    ))}
+                    {equipamentos.length > 0 ? (
+                        equipamentos.slice(0, 5).map((equipamento) => (
+                            <DashboardListCard key={equipamento.id} paddingSize="medium">
+                                <ListCardTitle>{equipamento.equipamento}</ListCardTitle>
+                                <ListCardDetail>Patrimônio: {equipamento.patrimonio}</ListCardDetail>
+                                <ListCardDetail>Marca: {equipamento.marca}</ListCardDetail>
+                                <ListCardStock>Estoque: {equipamento.quantidade}</ListCardStock>
+                            </DashboardListCard>
+                        ))
+                    ) : (
+                        <ListCardDetail style={{ textAlign: 'center', fontStyle: 'italic' }}>Nenhum equipamento recente.</ListCardDetail>
+                    )}
                 </Column>
+                
+                {/* COLUNA DE FUNCIONÁRIOS (Seu pedido original era só o CARD)
+                  Se você também quiser a coluna de "Funcionários Recentes", 
+                  descomente o bloco abaixo e ajuste os campos (ex: nome, profissão).
+                */}
+                {/*
+                <Column>
+                    <SectionTitle>Funcionários Recentes</SectionTitle>
+                    {funcionarios.length > 0 ? (
+                        funcionarios.slice(0, 5).map((func) => (
+                            <DashboardListCard key={func.id} paddingSize="medium">
+                                <ListCardTitle>{func.nome}</ListCardTitle>
+                                <ListCardDetail>Profissão: {func.tipoProfissao}</ListCardDetail>
+                                <ListCardDetail>Contrato: {func.tipoContrato}</ListCardDetail>
+                            </DashboardListCard>
+                        ))
+                    ) : (
+                        <ListCardDetail style={{ textAlign: 'center', fontStyle: 'italic' }}>Nenhum funcionário recente.</ListCardDetail>
+                    )}
+                </Column>
+                */}
+
             </CentralContainer>
         </DashboardLayout>
     );
 };
 
 export default DashboardPage;
+
+// Lembrete: Se você não definiu Colors.primaryLight e Colors.accentLight em theme/colors.ts,
+// a prop 'highlight' no DashboardListCard (para Obras) só mudará a cor da borda,
+// o que é perfeitamente normal, já que removemos o background-color de lá.

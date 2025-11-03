@@ -1,56 +1,71 @@
-// src/hooks/useDashboardData.ts
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import { ClienteService } from '../api/ClienteService';
 import { ObraService } from '../api/ObraService';
-import { EquipamentoService } from '../api/EquipamentoService';
-import { FuncionarioService } from '../api/FuncionarioService'; // <-- 1. IMPORTAR
-
-import type { Equipamento } from '../models/Equipamento';
+import { FuncionarioService } from '../api/FuncionarioService'; // Mantém Funcionários
+// REMOVIDO: Importações de Equipamento
 import type { Cliente } from '../models/Cliente';
 import type { Obra } from '../models/Obra';
-import type { Funcionario } from '../models/Funcionario'; // <-- 2. IMPORTAR
+import type { Funcionario } from '../models/Funcionario';
+import { useAuthContext } from '../context/AuthContext';
 
 export const useDashboardData = () => {
-  const clientesQuery = useQuery<Cliente[], Error>({
-    queryKey: ['clientes'],
-    queryFn: () => ClienteService.listClientes(), 
-  });
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { logout } = useAuthContext();
 
-  const obrasQuery = useQuery<Obra[], Error>({
-    queryKey: ['obras'],
-    queryFn: () => ObraService.listObras(),
-  });
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Busca apenas os 3 necessários
+      const [
+        clientesData,
+        obrasData,
+        funcionariosData
+      ] = await Promise.all([
+        ClienteService.listClientes(),
+        ObraService.listObras(),
+        FuncionarioService.listFuncionarios()
+        // REMOVIDO: EquipamentoService.getAllEquipamentos()
+      ]);
 
-  const equipamentosQuery = useQuery<Equipamento[], Error>({
-    queryKey: ['equipamentos'],
-    queryFn: () => EquipamentoService.getAllEquipamentos(),
-  });
+      setClientes(clientesData);
+      setObras(obrasData);
+      setFuncionarios(funcionariosData);
 
-  // 3. ADICIONADO: Query para buscar funcionários
-  const funcionariosQuery = useQuery<Funcionario[], Error>({
-    queryKey: ['funcionarios'],
-    queryFn: () => FuncionarioService.listFuncionarios(), // Assume que o service tem listFuncionarios
-  });
+    } catch (err: any) {
+      console.error("Erro ao carregar dados do dashboard:", err);
+      const errorMessage =
+        axios.isAxiosError(err) && err.response?.data?.error
+          ? err.response.data.error
+          : 'Falha ao carregar dados do dashboard.';
+      setError(errorMessage);
 
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        alert("Sua sessão expirou. Por favor, faça login novamente.");
+        logout();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [logout]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Retorna os 3 tipos de dados
   return {
-    // 4. ATUALIZADO: Retorna os dados
-    clientes: clientesQuery.data || [],
-    obras: obrasQuery.data || [],
-    equipamentos: equipamentosQuery.data || [],
-    funcionarios: funcionariosQuery.data || [], // <-- ADICIONADO
-    
-    // 5. ATUALIZADO: Loading considera as quatro queries
-    loading: 
-      clientesQuery.isLoading || 
-      obrasQuery.isLoading || 
-      equipamentosQuery.isLoading ||
-      funcionariosQuery.isLoading, // <-- ADICIONADO
-      
-    // 6. ATUALIZADO: Error considera as quatro queries
-    error: 
-      clientesQuery.error || 
-      obrasQuery.error || 
-      equipamentosQuery.error ||
-      funcionariosQuery.error, // <-- ADICIONADO
+    clientes,
+    obras,
+    funcionarios,
+    loading,
+    error,
+    fetchData
   };
 };

@@ -1,14 +1,13 @@
 import React from 'react';
-import styled from 'styled-components'; // Importa styled-components
+import styled from 'styled-components';
 import { useAuthContext } from '../context/AuthContext';
 import { Colors } from '../theme/colors';
-import CardComponent from '../components/ui/Card'; // Importa Card refatorado
+import CardComponent from '../components/ui/Card';
 import DashboardLayout from '../components/ui/DashboardLayout';
-// Importa o ícone de Funcionário
-import { AiOutlineProject, AiOutlineTeam, AiOutlineTool, AiOutlineUser } from 'react-icons/ai'; 
-import { useDashboardData } from '../hooks/useDashboardData'; // Hook que busca todos os dados
+import { AiOutlineProject, AiOutlineTeam, AiOutlineUser } from 'react-icons/ai'; 
+import { useDashboardData } from '../hooks/useDashboardData';
 
-// --- Menu Items (com tipagem correta) ---
+// --- Menu Items (SEM ALTERAÇÕES) ---
 const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Clientes', path: '/clientes' },
@@ -17,7 +16,7 @@ const menuItems = [
     { label: 'Funcionários', path: '/funcionarios', allowedRoles: ['GESTOR', 'ADMIN'] as const },
 ];
 
-// --- Styled Components ---
+// --- Styled Components (CORRIGIDO - SEM DUPLICATAS) ---
 
 const LoadingContainer = styled.div`
   display: flex;
@@ -38,11 +37,10 @@ const ErrorMessage = styled.p`
 
 const Header = styled.header`
   display: flex;
-  justify-content: center;
+  justify-content: space-between; /* Título à esquerda, Boas-vindas à direita */
   align-items: center;
   margin-bottom: 30px;
   width: 100%;
-  position: relative;
 
   @media (max-width: 600px) {
     flex-direction: column;
@@ -56,22 +54,17 @@ const PageTitle = styled.h1`
   color: ${Colors.primary};
   margin: 0;
   font-weight: bold;
-  text-align: center;
-
+  
   @media (max-width: 600px) {
     font-size: 24px;
+    text-align: center;
   }
 `;
 
 const WelcomeWrapper = styled.div`
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  text-align: right;
 
   @media (max-width: 600px) {
-    position: static;
-    transform: none;
     text-align: center;
   }
 `;
@@ -80,17 +73,12 @@ const WelcomeText = styled.p`
   font-size: 1rem;
   color: ${Colors.text};
   margin: 0;
-
-  strong {
-    color: ${Colors.primary};
-  }
-
+  strong { color: ${Colors.primary}; }
   @media (max-width: 600px) {
     font-size: 0.9rem;
   }
 `;
 
-// Container dos cards de métrica
 const CardsContainer = styled.div`
   display: flex;
   gap: 20px;
@@ -99,7 +87,6 @@ const CardsContainer = styled.div`
   margin-bottom: 40px;
 `;
 
-// Card de métrica
 const MetricCard = styled(CardComponent)`
   width: 180px;
   min-width: 150px;
@@ -109,19 +96,18 @@ const MetricCard = styled(CardComponent)`
   gap: 5px;
   flex-grow: 1;
   max-width: 200px;
-  padding: 15px; // Garante o padding
-
-  svg {
-    margin-bottom: 5px;
-  }
+  padding: 15px;
+  svg { margin-bottom: 5px; }
 `;
 
+// Definição ÚNICA de CardLabel
 const CardLabel = styled.p`
   font-size: 0.9em;
   color: ${Colors.secondary};
   margin: 0;
 `;
 
+// Definição ÚNICA de CardValue
 const CardValue = styled.p`
   font-size: 1.25em;
   font-weight: bold;
@@ -129,23 +115,16 @@ const CardValue = styled.p`
   margin: 0;
 `;
 
-// Container das colunas de "Recentes"
+// Container das colunas de "Recentes" (GRID)
 const CentralContainer = styled.div`
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 30px;
-  flex-wrap: wrap;
   margin-bottom: 50px;
+  padding: 0 10px; 
 
-   @media (min-width: 993px) {
-     justify-content: flex-start;
-     padding-left: 20px;
-   }
-
-  @media (max-width: 992px) {
-    flex-direction: column;
-    align-items: center;
-    gap: 40px;
+  @media (max-width: 380px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -154,15 +133,7 @@ const Column = styled.div`
   display: flex;
   flex-direction: column;
   gap: 15px;
-  flex: 1 1 300px;
-  min-width: 280px;
-  max-width: 450px;
-
-  @media (max-width: 992px) {
-    width: 90%;
-    max-width: 600px;
-    flex-basis: auto;
-  }
+  /* Largura é controlada pelo Grid */
 `;
 
 const SectionTitle = styled.h2`
@@ -173,12 +144,10 @@ const SectionTitle = styled.h2`
   text-align: center;
 `;
 
-// Card para as listas de recentes
 const DashboardListCard = styled(CardComponent)`
   gap: 6px;
   transition: transform 0.2s ease-in-out;
-  width: 100%; // Garante que ocupe a coluna
-
+  width: 100%;
   &:hover {
     transform: translateY(-3px);
   }
@@ -197,30 +166,21 @@ const ListCardDetail = styled.p`
   font-size: 0.9em;
 `;
 
-const ListCardStock = styled.p`
-  color: ${Colors.accent};
-  font-weight: bold;
-  font-size: 0.95em;
-  margin: 0;
-  margin-top: 5px;
-`;
-
 // --- Componente React ---
 
 const DashboardPage: React.FC = () => {
     const { user, loading: authLoading } = useAuthContext();
-    // Pega TODOS os dados do hook, incluindo 'funcionarios'
-    const { obras, clientes, equipamentos, funcionarios, loading, error } = useDashboardData();
+    // Hook (sem 'equipamentos')
+    const { obras, clientes, funcionarios, loading, error } = useDashboardData();
 
     const userName = user?.name || 'Visitante';
     const userRole: 'GESTOR' | 'ADMIN' = user?.role === 'ADMIN' ? 'ADMIN' : 'GESTOR';
 
-    // --- Lógica de Loading e Erro ---
+    // --- Lógica de Loading e Erro (SEM ALTERAÇÕES) ---
     if (authLoading || loading) {
         return <LoadingContainer>Carregando Dashboard...</LoadingContainer>;
     }
     
-    // Mostra erro se houver (converte objeto Error para string)
     let errorMessage: string | null = null;
     if (error) {
         errorMessage = error instanceof Error ? error.message : String(error);
@@ -234,16 +194,14 @@ const DashboardPage: React.FC = () => {
         );
     }
 
-    // --- Lógica de Métricas (COM FUNCIONÁRIOS) ---
+    // --- Lógica de Métricas (SEM EQUIPAMENTOS) ---
     const metrics = [
         { label: 'Obras', value: obras.length, icon: <AiOutlineProject size={30} color={Colors.accent} /> },
         { label: 'Clientes', value: clientes.length, icon: <AiOutlineTeam size={30} color={Colors.accent} /> },
-        { label: 'Equipamentos', value: equipamentos.length, icon: <AiOutlineTool size={30} color={Colors.accent} /> },
-        // ✅ CARD DE FUNCIONÁRIOS ADICIONADO
         { label: 'Funcionários', value: funcionarios.length, icon: <AiOutlineUser size={30} color={Colors.accent} /> },
     ];
 
-    // --- JSX com Styled Components ---
+    // --- JSX (com tags de fechamento CORRIGIDAS) ---
     return (
         <DashboardLayout menuItems={menuItems} userRole={userRole}>
             <Header>
@@ -255,7 +213,6 @@ const DashboardPage: React.FC = () => {
                 </WelcomeWrapper>
             </Header>
 
-            {/* Cards de Métrica */}
             <CardsContainer>
                 {metrics.map((metric, idx) => (
                     <MetricCard key={idx} paddingSize="medium">
@@ -266,8 +223,7 @@ const DashboardPage: React.FC = () => {
                 ))}
             </CardsContainer>
 
-            {/* Colunas de Dados Recentes */}
-            <CentralContainer>
+            <CentralContainer> {/* <-- Usa GRID */}
                 {/* Obras Recentes */}
                 <Column>
                     <SectionTitle>Obras Recentes</SectionTitle>
@@ -306,28 +262,7 @@ const DashboardPage: React.FC = () => {
                     )}
                 </Column>
 
-                {/* Equipamentos Recentes */}
-                <Column>
-                    <SectionTitle>Equipamentos Recentes</SectionTitle>
-                    {equipamentos.length > 0 ? (
-                        equipamentos.slice(0, 5).map((equipamento) => (
-                            <DashboardListCard key={equipamento.id} paddingSize="medium">
-                                <ListCardTitle>{equipamento.equipamento}</ListCardTitle>
-                                <ListCardDetail>Patrimônio: {equipamento.patrimonio}</ListCardDetail>
-                                <ListCardDetail>Marca: {equipamento.marca}</ListCardDetail>
-                                <ListCardStock>Estoque: {equipamento.quantidade}</ListCardStock>
-                            </DashboardListCard>
-                        ))
-                    ) : (
-                        <ListCardDetail style={{ textAlign: 'center', fontStyle: 'italic' }}>Nenhum equipamento recente.</ListCardDetail>
-                    )}
-                </Column>
-                
-                {/* COLUNA DE FUNCIONÁRIOS (Seu pedido original era só o CARD)
-                  Se você também quiser a coluna de "Funcionários Recentes", 
-                  descomente o bloco abaixo e ajuste os campos (ex: nome, profissão).
-                */}
-                {/*
+                {/* Coluna de Funcionários Recentes */}
                 <Column>
                     <SectionTitle>Funcionários Recentes</SectionTitle>
                     {funcionarios.length > 0 ? (
@@ -342,15 +277,10 @@ const DashboardPage: React.FC = () => {
                         <ListCardDetail style={{ textAlign: 'center', fontStyle: 'italic' }}>Nenhum funcionário recente.</ListCardDetail>
                     )}
                 </Column>
-                */}
-
+                
             </CentralContainer>
         </DashboardLayout>
     );
 };
 
 export default DashboardPage;
-
-// Lembrete: Se você não definiu Colors.primaryLight e Colors.accentLight em theme/colors.ts,
-// a prop 'highlight' no DashboardListCard (para Obras) só mudará a cor da borda,
-// o que é perfeitamente normal, já que removemos o background-color de lá.

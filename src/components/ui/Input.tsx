@@ -12,14 +12,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 // Styled Components
 const InputWrapper = styled.div`
   display: flex;
-  flex-direction: column;
+  // flex-direction: column;
   width: 100%;
-  margin-bottom: 15px;
+  // margin-bottom: 15px;
   position: relative; /* Necessário para posicionar o ícone */
 `;
 
 const StyledLabel = styled.label`
   margin-bottom: 5px;
+  margin-right: 10px;
   font-weight: 500;
   color: ${Colors.text};
   font-size: 0.9em;
@@ -61,7 +62,7 @@ const StyledInput = styled.input<{ error?: string; hasIconEnd?: boolean }>`
 const IconWrapper = styled.div`
   position: absolute;
   right: 10px;
-  top: 30px; /* Ajuste conforme necessário para alinhar com o input */
+  top: 9px; /* Ajuste conforme necessário para alinhar com o input */
   /* Ajuste fino da posição vertical dependendo da altura do input/label */
   /* Você pode usar transform: translateY(-50%) e top: 50% + (altura_label / 2) */
   height: 24px; // Altura do ícone

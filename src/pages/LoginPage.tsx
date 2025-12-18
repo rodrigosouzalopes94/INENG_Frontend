@@ -164,7 +164,7 @@ const LoginPage: React.FC = () => {
 
                 <LoginForm onSubmit={handleLogin}>
                     <Input // Usa o Input diretamente
-                        label="Email *"
+                        label="Email"
                         type="email"
                         name="email"
                         value={email}
@@ -177,7 +177,7 @@ const LoginPage: React.FC = () => {
                     />
 
                     <Input // Usa o Input diretamente
-                        label="Senha *"
+                        label="Senha"
                         type={showPassword ? "text" : "password"}
                         name="password"
                         value={password}

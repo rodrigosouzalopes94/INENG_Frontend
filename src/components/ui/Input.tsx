@@ -61,7 +61,7 @@ const StyledInput = styled.input<{ error?: string; hasIconEnd?: boolean }>`
 const IconWrapper = styled.div`
   position: absolute;
   right: 10px;
-  top: 35px; /* Ajuste conforme necessário para alinhar com o input */
+  top: 30px; /* Ajuste conforme necessário para alinhar com o input */
   /* Ajuste fino da posição vertical dependendo da altura do input/label */
   /* Você pode usar transform: translateY(-50%) e top: 50% + (altura_label / 2) */
   height: 24px; // Altura do ícone

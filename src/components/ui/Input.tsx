@@ -11,6 +11,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 // Styled Components
 const InputWrapper = styled.div`
+  align-items: center;
   display: flex;
   // flex-direction: column;
   width: 100%;
@@ -19,11 +20,11 @@ const InputWrapper = styled.div`
 `;
 
 const StyledLabel = styled.label`
-  margin-bottom: 5px;
   margin-right: 10px;
   font-weight: 500;
   color: ${Colors.text};
   font-size: 0.9em;
+  white-space: nowrap; // Força o label a não quebrar
 `;
 
 // Input ajustado para ter padding-right se houver ícone

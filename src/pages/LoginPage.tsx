@@ -164,7 +164,7 @@ const LoginPage: React.FC = () => {
 
                 <LoginForm onSubmit={handleLogin}>
                     <Input // Usa o Input diretamente
-                        label="Email"
+                        // label="Email"
                         type="email"
                         name="email"
                         value={email}
@@ -174,10 +174,11 @@ const LoginPage: React.FC = () => {
                         disabled={loading}
                         error={errors.email}
                         autoComplete="email"
+                        placeholder='Digite seu e-mail'
                     />
 
                     <Input // Usa o Input diretamente
-                        label="Senha"
+                        // label="Senha"
                         type={showPassword ? "text" : "password"}
                         name="password"
                         value={password}
@@ -187,6 +188,7 @@ const LoginPage: React.FC = () => {
                         disabled={loading}
                         error={errors.password} // Passa erro para o Input
                         autoComplete="current-password"
+                        placeholder='Digite sua senha'
                         iconEnd={ // Passa o ícone clicável
                           <span onClick={togglePasswordVisibility} style={{ cursor: 'pointer', display: 'flex' }}> {/* display:flex ajuda alinhamento do ícone */}
                             {showPassword ? <AiOutlineEyeInvisible size={20} /> : <AiOutlineEye size={20} />}

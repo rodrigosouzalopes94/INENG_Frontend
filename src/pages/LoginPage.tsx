@@ -13,7 +13,7 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from 'react-icons/ai';
 // --- Styled Components ---
 
 const PageContainer = styled.div`
-  min-height: 100vh;
+  min-height: 91vh;
   background: linear-gradient(135deg, ${Colors.background}, #f8fafc);
   display: flex;
   justify-content: center;

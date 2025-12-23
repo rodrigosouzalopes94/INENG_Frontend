@@ -11,7 +11,7 @@ import { useRequestReset } from '../hooks/useRequestReset'; // Hook para chamar 
 // --- Styled Components ---
 
 const PageContainer = styled.div`
-  min-height: 100vh;
+  min-height: 91vh;
   background: linear-gradient(135deg, ${Colors.background}, #f8fafc); /* Reutiliza gradiente do login */
   display: flex;
   justify-content: center;

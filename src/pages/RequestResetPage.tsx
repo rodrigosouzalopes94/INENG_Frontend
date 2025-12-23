@@ -86,7 +86,6 @@ const ActionButton = styled(Button)`
 const BackLink = styled(Button)`
   margin-top: 20px;
   font-size: 0.9em;
-  text-decoration: underline;
   padding: 5px; // Padding menor para link
 `;
 

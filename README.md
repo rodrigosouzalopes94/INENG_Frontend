@@ -1,124 +1,181 @@
-# 👷‍♂️ Portal de Gestão de Obras - INENG
+# 🏗️ INENG – Portal de Gestão de Obras
 
-Este é o repositório do **Portal de Gestão de Obras (INENG - Inova Engenharia)**, uma aplicação desenvolvida com **arquitetura modular** para **controle de custos, cadastro de usuários e gestão de projetos**.
+O **INENG – Portal de Gestão de Obras** é um **micro ERP/CRM voltado para o setor de engenharia**, desenvolvido para centralizar o controle operacional de obras, clientes, usuários, equipamentos e funcionários.
 
----
+A aplicação foi construída com foco em **organização, segurança e escalabilidade**, atendendo às necessidades de gestão técnica e administrativa de projetos de engenharia.
 
-## 🏗️ 1. Arquitetura do Projeto
-
-O projeto é dividido em duas camadas principais, seguindo uma arquitetura moderna para **máxima escalabilidade** e **separação de responsabilidades**:
-
-| Camada | Tecnologia Principal | Finalidade |
-|--------|----------------------|-------------|
-| **Frontend (Web)** | React (Vite) + TypeScript | Interface de usuário (UI) componentizada e rápida. |
-| **Backend (API)** | Node.js (Express) + TypeScript | Servidor RESTful, lógica de negócio e segurança. |
-| **Banco de Dados** | MySQL + Prisma ORM | Persistência de dados segura e tipada. |
+🌐 **Sistema em produção:**
+[https://ineng-sistemas.vercel.app/](https://ineng-sistemas.vercel.app/)
 
 ---
 
-## 📂 2. Estrutura de Pastas
+## 🎯 Objetivo do Sistema
 
-A estrutura do projeto segue um modelo modular, garantindo organização e fácil escalabilidade:
+O INENG tem como objetivo oferecer uma solução única para:
+
+* Gestão de obras e projetos
+* Controle de clientes
+* Administração de usuários do sistema
+* Organização de recursos (equipamentos e funcionários)
+* Visualização de dados através de dashboards
+
+---
+
+## 🧠 Arquitetura do Projeto
+
+O sistema adota uma **arquitetura modular**, separando responsabilidades e facilitando a manutenção e evolução da aplicação.
+
+| Camada         | Tecnologia                     | Finalidade                                          |
+| -------------- | ------------------------------ | --------------------------------------------------- |
+| Frontend (Web) | React (Vite) + TypeScript      | Interface de usuário rápida e componentizada        |
+| Backend (API)  | Node.js (Express) + TypeScript | Lógica de negócio, autenticação e regras do sistema |
+| Banco de Dados | PostgreSQL + Prisma ORM        | Persistência de dados tipada e segura               |
+
+---
+
+## ⚙️ Funcionalidades Principais
+
+### 👥 Gestão de Usuários
+
+* Cadastro de usuários do sistema
+* Controle de perfis e permissões (roles)
+* Autenticação segura com **JWT**
+
+---
+
+### 🏢 Clientes e Obras
+
+* Cadastro de clientes
+* Cadastro de obras
+* Associação de obras a clientes
+* Organização por status e responsáveis
+
+---
+
+### 🧑‍🔧 Recursos de Engenharia
+
+* Cadastro de funcionários
+* Cadastro de equipamentos
+* Vínculo de recursos às obras
+
+---
+
+### 📊 Dashboards
+
+* Visão geral dos dados do sistema
+* Indicadores operacionais
+* Apoio à tomada de decisão
+
+---
+
+## 📂 Estrutura de Pastas
 
 ```
 .
-├── INENG_Backend/       # Servidor Node.js (API)
-│   ├── prisma/          # Schemas e Migrações (Prisma)
-│   └── src/             # Código-fonte do servidor (Controllers, Routes, DB)
-└── INENG_Frontend/      # Aplicação Web (React/Vite)
+├── INENG_Backend/       # API Node.js
+│   ├── prisma/          # Schema e migrações (Prisma)
+│   └── src/             # Controllers, Routes, Middlewares e DB
+└── INENG_Frontend/      # Aplicação Web (React)
     ├── src/
-    │   ├── api/         # Configuração do Axios e Serviços de API
-    │   ├── components/  # Componentes de UI Reutilizáveis (Input, Button, Card)
-    │   ├── hooks/       # Lógica de Estado e Integrações de API
-    │   ├── models/      # Tipos de Dados (User, Cliente, etc.)
-    │   └── pages/       # Telas/Rotas Principais (Login, RegisterUser)
+    │   ├── api/         # Configuração do Axios e serviços
+    │   ├── components/  # Componentes reutilizáveis de UI
+    │   ├── hooks/       # Hooks customizados e estado
+    │   ├── models/      # Tipagens e modelos de dados
+    │   └── pages/       # Telas principais (Login, Dashboards, Cadastros)
 ```
 
 ---
 
-## ⚙️ 3. Setup do Ambiente
+## 🚀 Como Rodar Localmente
 
-### 3.1 Banco de Dados
+### ✅ Pré-requisitos
 
-1. Garanta que o servidor MySQL esteja rodando (porta `3306`).
-2. Crie um banco de dados chamado `ineng_db` no **MySQL Workbench**.
+* Node.js 16+
+* PostgreSQL ativo
 
 ---
 
-### 3.2 Configuração do Backend (`INENG_Backend/`)
-
-**Instalação**
+### 🔧 Configuração do Backend
 
 ```bash
 cd INENG_Backend
 npm install
 ```
 
-**Variáveis de ambiente**
-
-Crie um arquivo `.env` na raiz com o seguinte conteúdo:
+Crie o arquivo `.env`:
 
 ```env
-# .env (BACKEND)
-DATABASE_URL="mysql://root:root@localhost:3306/ineng_db"
+DATABASE_URL="postgresql://usuario:senha@localhost:5432/ineng_db"
 PORT=3000
-JWT_SECRET="SUA_CHAVE_SECRETA_MUITO_LONGA_AQUI"
+JWT_SECRET="SUA_CHAVE_SECRETA_MUITO_LONGA"
 ```
 
-**Executar Migrações**
+Execute as migrações:
 
 ```bash
 npx prisma migrate dev --name init_schema
 ```
 
+Inicie a API:
+
+```bash
+npm run dev
+```
+
 ---
 
-### 3.3 Configuração do Frontend (`INENG_Frontend/`)
-
-**Instalação**
+### 🎨 Configuração do Frontend
 
 ```bash
 cd INENG_Frontend
 npm install
-npm install react-icons
 ```
 
-**Variáveis de ambiente**
-
-Crie o arquivo `.env` com o seguinte conteúdo:
+Crie o `.env`:
 
 ```env
-# .env (FRONTEND - VITE)
-VITE_API_BASE_URL=http://SEU_IP_LOCAL:3000/api/v1
+VITE_API_BASE_URL=http://localhost:3000/api/v1
+```
+
+Inicie a aplicação:
+
+```bash
+npm run dev
+```
+
+Acesse:
+
+```
+http://localhost:5173
 ```
 
 ---
 
-## ▶️ 4. Como Rodar o Sistema
+## 🔐 Segurança
 
-### Iniciar o Backend (API)
+* Autenticação baseada em **JWT**
+* Controle de acesso por perfil de usuário
+* Rotas protegidas no backend
+* Comunicação segura entre frontend e backend
 
-```bash
-cd INENG_Backend
-npm run dev
-```
+---
 
-### Iniciar o Frontend (Web)
+## 📦 Deploy
 
-```bash
-cd INENG_Frontend
-npm run dev
-```
-
-Após isso, acesse o navegador e teste o **fluxo de Login e Cadastro de Gestores**.
+* Frontend publicado na **Vercel**
+* Backend preparado para ambientes de produção
+* Banco de dados PostgreSQL
 
 ---
 
 ## 📜 Licença
 
-Este projeto é de uso interno da **INENG - Inova Engenharia**.  
+Projeto de uso interno da **INENG – Inova Engenharia**.
+
 Distribuição ou uso comercial sem autorização prévia não é permitida.
 
 ---
 
-**Desenvolvido por Inova Engenharia**
+## ✅ Considerações Finais
+
+O **INENG** se posiciona como uma solução robusta e moderna para **gestão de obras e recursos de engenharia**, unindo boas práticas de desenvolvimento, segurança e clareza nas regras de negócio.
